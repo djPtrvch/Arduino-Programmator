@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Arduino Programmator</title>
+<style>
+:root {
+  --bg: #f4f5f7; --card: #fff; --text: #1c1e21; --muted: #6b7280; --line: #e3e5e8;
+  --accent: #0a7cff; --ok: #12a150; --err: #d93025; --mono: ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111317; --card: #1b1e24; --text: #e8eaed; --muted: #9aa0a6; --line: #2c3038; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.45 -apple-system, system-ui, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+h1 { font-size: 22px; margin: 8px 0 4px; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+.sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+select, input[type=text], input[type=password], input[type=url] {
+  width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); font-size: 16px; }
+button { appearance: none; border: 0; border-radius: 10px; padding: 12px 16px; font-size: 16px;
+  font-weight: 600; background: var(--accent); color: #fff; cursor: pointer; }
+button.secondary { background: var(--line); color: var(--text); }
+button:disabled { opacity: .5; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.row > * { flex: 1 1 auto; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.pill.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.pill.off { background: var(--line); color: var(--muted); }
+.desc { font-size: 14px; color: var(--muted); margin-top: 6px; }
+progress { width: 100%; height: 8px; margin-top: 14px; accent-color: var(--accent); }
+#log { font: 13px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 260px;
+  overflow: auto; background: var(--bg); border-radius: 10px; padding: 10px; margin: 0; }
+.ok { color: var(--ok); } .err { color: var(--err); }
+.hidden { display: none !important; }
+details summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Arduino Programmator</h1>
+  <p class="sub" id="modeLine">Определяю режим…</p>
+
+  <section class="card" id="bridgeCard">
+    <h2>Мост ESP32 <span id="bridgePill" class="pill off">нет связи</span></h2>
+    <div id="bridgeInfo" class="desc"></div>
+    <div class="row">
+      <button class="secondary" id="chipBtn">Проверить чип</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Прошивка из каталога</h2>
+    <label for="project">Проект</label>
+    <select id="project"></select>
+    <div class="desc" id="projectDesc"></div>
+    <label for="board">Плата</label>
+    <select id="board"></select>
+    <div class="row">
+      <button id="flashCatalogBtn">Прошить</button>
+      <button class="secondary" id="downloadBtn">Скачать файл</button>
+    </div>
+    <div class="desc" id="catalogInfo"></div>
+  </section>
+
+  <section class="card">
+    <h2>Прошивка из файла (.hex)</h2>
+    <label for="fileBoard">Плата</label>
+    <select id="fileBoard"></select>
+    <label for="file">Файл</label>
+    <input type="file" id="file" accept=".hex,.ihex,text/plain">
+    <div class="row">
+      <button id="flashFileBtn">Прошить файл</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Журнал</h2>
+    <progress id="progress" value="0" max="1" class="hidden"></progress>
+    <pre id="log"></pre>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Настройки</summary>
+      <label for="catalogUrl">Адрес каталога прошивок (GitHub Pages)</label>
+      <input type="url" id="catalogUrl">
+      <div class="row"><button class="secondary" id="saveCatalogBtn">Сохранить и обновить</button></div>
+
+      <div id="bridgeSettings">
+        <label for="ssid">Домашний Wi-Fi для моста (SSID)</label>
+        <input type="text" id="ssid" autocapitalize="off" autocorrect="off">
+        <label for="pass">Пароль</label>
+        <input type="password" id="pass">
+        <div class="row"><button class="secondary" id="wifiBtn">Сохранить Wi-Fi и перезапустить мост</button></div>
+
+        <label for="bridgeFile">Обновить прошивку моста (.bin)</label>
+        <input type="file" id="bridgeFile" accept=".bin">
+        <div class="row">
+          <button class="secondary" id="bridgeUpdateCatalogBtn">Из каталога</button>
+          <button class="secondary" id="bridgeUpdateFileBtn">Из файла</button>
+        </div>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script>
+"use strict";
+// Профили плат подставляются при сборке из boards.json.
+const BOARDS = /*@BOARDS@*/null;
+const DEFAULT_CATALOG = "https://djptrvch.github.io/Arduino-Programmator/";
+
+const $ = (id) => document.getElementById(id);
+const state = { bridge: null, manifest: null, boards: BOARDS || {} };
+
+function store(key, value) {
+  try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); }
+  catch (e) { return null; }
+}
+
+function log(msg, cls) {
+  const line = document.createElement("div");
+  if (cls) line.className = cls;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  $("log").appendChild(line);
+  $("log").scrollTop = $("log").scrollHeight;
+}
+
+function catalogUrl() {
+  let u = store("catalogUrl") || DEFAULT_CATALOG;
+  if (!u.endsWith("/")) u += "/";
+  return u;
+}
+
+// ---------- Intel HEX -> страницы
+
+function parseHex(text) {
+  const mem = new Map(); // адрес -> байт
+  let base = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line[0] !== ":") throw new Error("Не похоже на Intel HEX");
+    const bytes = line.slice(1).match(/../g).map((h) => parseInt(h, 16));
+    const sum = bytes.reduce((a, b) => a + b, 0) & 0xff;
+    if (sum !== 0) throw new Error("Ошибка контрольной суммы в строке: " + line);
+    const [len, ah, al, type] = bytes;
+    const data = bytes.slice(4, 4 + len);
+    if (type === 0) {
+      const addr = base + ((ah << 8) | al);
+      data.forEach((b, i) => mem.set(addr + i, b));
+    } else if (type === 1) break;
+    else if (type === 2) base = ((data[0] << 8) | data[1]) << 4;
+    else if (type === 4) base = ((data[0] << 8) | data[1]) << 16;
+  }
+  return mem;
+}
+
+function buildRecords(mem, board) {
+  const ps = board.pageSize;
+  const pages = new Map();
+  for (const [addr, b] of mem) {
+    if (addr >= board.flashSize) throw new Error(`Прошивка не помещается: адрес 0x${addr.toString(16)} > ${board.flashSize} байт`);
+    const pa = addr - (addr % ps);
+    if (!pages.has(pa)) pages.set(pa, new Uint8Array(ps).fill(0xff));
+    pages.get(pa)[addr - pa] = b;
+  }
+  const addrs = [...pages.keys()].filter((a) => pages.get(a).some((b) => b !== 0xff)).sort((a, b) => a - b);
+  const out = new Uint8Array(addrs.length * (4 + ps));
+  addrs.forEach((a, i) => {
+    const off = i * (4 + ps);
+    new DataView(out.buffer).setUint32(off, a, true);
+    out.set(pages.get(a), off + 4);
+  });
+  return { data: out, pages: addrs.length, bytes: mem.size };
+}
+
+// ---------- HTTP
+
+function upload(url, blob, name) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const fd = new FormData();
+    fd.append("file", blob, name);
+    xhr.open("POST", url);
+    const bar = $("progress");
+    bar.classList.remove("hidden");
+    bar.value = 0;
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) bar.value = e.loaded / e.total; };
+    xhr.onload = () => {
+      bar.value = 1;
+      let body = {};
+      try { body = JSON.parse(xhr.responseText); } catch (e) { body = { error: xhr.responseText }; }
+      if (xhr.status === 200 && body.ok) resolve(body);
+      else reject(new Error(body.error || `HTTP ${xhr.status}`));
+    };
+    xhr.onerror = () => reject(new Error("Нет связи с мостом"));
+    xhr.send(fd);
+  });
+}
+
+async function getJson(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  const body = await r.json();
+  if (!r.ok || body.ok === false) throw new Error(body.error || `HTTP ${r.status}`);
+  return body;
+}
+
+// ---------- Прошивка
+
+async function flashHexText(text, boardId, label) {
+  const board = state.boards[boardId];
+  if (!board) throw new Error("Неизвестная плата: " + boardId);
+  if (board.method !== "isp") throw new Error(`Плата «${board.name}» прошивается не через мост (метод: ${board.method}). Скачайте файл.`);
+  if (!state.bridge) throw new Error("Мост не найден. Откройте эту страницу с моста: http://192.168.4.1 или http://programmer.local");
+  const { data, pages, bytes } = buildRecords(parseHex(text), board);
+  log(`${label}: ${bytes} байт, ${pages} стр. по ${board.pageSize} → ${board.name}`);
+  const q = new URLSearchParams({ page: board.pageSize, flash: board.flashSize, sig: board.signature });
+  const t0 = performance.now();
+  const res = await upload("/api/flash?" + q, new Blob([data]), "fw.bin");
+  log(`Готово: записано и проверено ${res.pages} стр. за ${((performance.now() - t0) / 1000).toFixed(1)} с`, "ok");
+}
+
+async function run(btn, fn) {
+  const buttons = document.querySelectorAll("button");
+  buttons.forEach((b) => (b.disabled = true));
+  try { await fn(); }
+  catch (e) { log(e.message, "err"); }
+  finally { buttons.forEach((b) => (b.disabled = false)); updateButtons(); }
+}
+
+function selectedBuild() {
+  const p = state.manifest?.projects.find((x) => x.id === $("project").value);
+  const b = p?.builds[$("board").value];
+  return { project: p, build: b, boardId: $("board").value };
+}
+
+// ---------- UI
+
+function fillBoards(select, ids) {
+  const prev = select.value;
+  select.innerHTML = "";
+  for (const id of ids) {
+    const o = document.createElement("option");
+    o.value = id;
+    o.textContent = state.boards[id]?.name || id;
+    select.appendChild(o);
+  }
+  const saved = store("board");
+  if (ids.includes(prev)) select.value = prev;
+  else if (ids.includes(saved)) select.value = saved;
+}
+
+function renderProject() {
+  const p = state.manifest?.projects.find((x) => x.id === $("project").value);
+  $("projectDesc").textContent = p?.description || "";
+  fillBoards($("board"), p ? Object.keys(p.builds) : []);
+  updateButtons();
+}
+
+function updateButtons() {
+  const { build, boardId } = selectedBuild();
+  const isp = state.boards[boardId]?.method === "isp";
+  $("flashCatalogBtn").disabled = !build || !state.bridge || !isp;
+  $("downloadBtn").disabled = !build;
+  $("flashFileBtn").disabled = !state.bridge;
+  $("chipBtn").disabled = !state.bridge;
+}
+
+async function loadCatalog() {
+  try {
+    state.manifest = await getJson(catalogUrl() + "manifest.json");
+    Object.assign(state.boards, state.manifest.boards || {});
+    const sel = $("project");
+    sel.innerHTML = "";
+    for (const p of state.manifest.projects) {
+      const o = document.createElement("option");
+      o.value = p.id;
+      o.textContent = p.name;
+      sel.appendChild(o);
+    }
+    const saved = store("project");
+    if (state.manifest.projects.some((p) => p.id === saved)) sel.value = saved;
+    const when = new Date(state.manifest.generated).toLocaleString();
+    $("catalogInfo").textContent = `Сборка ${state.manifest.commit.slice(0, 7)} от ${when}`;
+    renderProject();
+  } catch (e) {
+    $("catalogInfo").textContent = "Каталог недоступен (нет интернета?). Используйте прошивку из файла.";
+  }
+  fillBoards($("fileBoard"), Object.keys(state.boards).filter((id) => state.boards[id].method === "isp"));
+}
+
+async function detectBridge() {
+  try {
+    state.bridge = await getJson("/api/status");
+  } catch (e) {
+    state.bridge = null;
+  }
+  const b = state.bridge;
+  $("bridgePill").className = "pill " + (b ? "ok" : "off");
+  $("bridgePill").textContent = b ? "на связи" : "нет связи";
+  $("bridgeSettings").classList.toggle("hidden", !b);
+  if (b) {
+    $("modeLine").textContent = "Страница открыта с моста — можно прошивать.";
+    $("bridgeInfo").textContent = `Версия ${b.bridge}. Точка доступа ${b.apIp}. ` +
+      (b.staConnected ? `Домашний Wi-Fi «${b.staSsid}»: ${b.staIp} (http://programmer.local)` : "Домашний Wi-Fi не подключён.");
+    $("ssid").value = b.staSsid || "";
+  } else {
+    $("modeLine").textContent = "Режим каталога: прошивки можно смотреть и скачивать. Чтобы прошивать, откройте страницу с моста (http://192.168.4.1).";
+    $("bridgeInfo").textContent = "";
+  }
+  updateButtons();
+}
+
+$("project").onchange = () => { store("project", $("project").value); renderProject(); };
+$("board").onchange = () => { store("board", $("board").value); updateButtons(); };
+
+$("flashCatalogBtn").onclick = (e) => run(e.target, async () => {
+  const { project, build, boardId } = selectedBuild();
+  log(`Скачиваю ${build.file}…`);
+  const r = await fetch(catalogUrl() + build.file, { cache: "no-store" });
+  if (!r.ok) throw new Error(`Не удалось скачать прошивку: HTTP ${r.status}`);
+  await flashHexText(await r.text(), boardId, project.name);
+});
+
+$("downloadBtn").onclick = (e) => run(e.target, async () => {
+  const { project, build, boardId } = selectedBuild();
+  const r = await fetch(catalogUrl() + build.file, { cache: "no-store" });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(await r.blob());
+  a.download = `${project.id}-${boardId}.${build.file.split(".").pop()}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  log(`Скачано: ${a.download} (сохраняется в «Файлы» → Загрузки)`, "ok");
+});
+
+$("flashFileBtn").onclick = (e) => run(e.target, async () => {
+  const f = $("file").files[0];
+  if (!f) throw new Error("Выберите .hex-файл");
+  store("board", $("fileBoard").value);
+  await flashHexText(await f.text(), $("fileBoard").value, f.name);
+});
+
+$("chipBtn").onclick = (e) => run(e.target, async () => {
+  const c = await getJson("/api/chip");
+  const match = Object.values(state.boards).filter((b) => b.signature === c.signature).map((b) => b.name);
+  log(`Сигнатура ${c.signature} (${match.join(", ") || "неизвестный чип"}), fuse L=${c.lfuse} H=${c.hfuse} E=${c.efuse}, lock=${c.lock}`, "ok");
+});
+
+$("saveCatalogBtn").onclick = () => { store("catalogUrl", $("catalogUrl").value.trim()); loadCatalog(); };
+
+$("wifiBtn").onclick = (e) => run(e.target, async () => {
+  const body = new URLSearchParams({ ssid: $("ssid").value, pass: $("pass").value });
+  await fetch("/api/wifi", { method: "POST", body });
+  log("Мост перезапускается. Через ~15 с откройте http://programmer.local (в домашней сети) или снова 192.168.4.1.", "ok");
+});
+
+async function updateBridge(blob) {
+  log(`Обновляю мост (${blob.size} байт)…`);
+  await upload("/api/bridge-update", blob, "bridge.bin");
+  log("Мост обновлён и перезапускается. Обновите страницу через ~15 с.", "ok");
+}
+
+$("bridgeUpdateCatalogBtn").onclick = (e) => run(e.target, async () => {
+  if (!state.manifest?.bridge) throw new Error("В каталоге нет прошивки моста");
+  const r = await fetch(catalogUrl() + state.manifest.bridge.file, { cache: "no-store" });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  await updateBridge(await r.blob());
+});
+
+$("bridgeUpdateFileBtn").onclick = (e) => run(e.target, async () => {
+  const f = $("bridgeFile").files[0];
+  if (!f) throw new Error("Выберите .bin-файл");
+  await updateBridge(f);
+});
+
+$("catalogUrl").value = catalogUrl();
+detectBridge().then(loadCatalog);
+</script>
+</body>
+</html>
