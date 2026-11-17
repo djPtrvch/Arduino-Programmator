@@ -18,11 +18,13 @@ const uint8_t MUX_SIG[] = {A0};          // по одному аналогово
 const uint8_t NUM_MUX = sizeof(MUX_SIG);
 const uint8_t NUM_POTS = NUM_MUX * 16;
 
-const int HYSTERESIS = 6;  // в единицах АЦП (0..1023)
+// Защита от дрожания: значение CC меняется, только если ручка ушла
+// за границы текущего шага больше чем на MARGIN единиц АЦП (0..1023, шаг CC = 8).
+const int MARGIN = 4;
+const uint8_t OVERSAMPLE = 4;  // чтений на одно измерение (усреднение)
 
-int filtered[NUM_POTS];
-int lastSentRaw[NUM_POTS];
-int8_t lastSentCc[NUM_POTS];
+int32_t filt[NUM_POTS];   // сглаженное значение * 16
+int16_t lastCc[NUM_POTS];
 
 void selectChannel(uint8_t ch) {
   for (uint8_t b = 0; b < 4; b++) digitalWrite(SELECT_PINS[b], (ch >> b) & 1);
@@ -32,8 +34,10 @@ void selectChannel(uint8_t ch) {
 int readPot(uint8_t index) {
   selectChannel(index % 16);
   uint8_t pin = MUX_SIG[index / 16];
-  analogRead(pin);        // первое чтение после переключения — «холостое»
-  return analogRead(pin);
+  analogRead(pin);  // холостое чтение после переключения
+  uint16_t sum = 0;
+  for (uint8_t k = 0; k < OVERSAMPLE; k++) sum += analogRead(pin);
+  return sum / OVERSAMPLE;
 }
 
 void sendCC(uint8_t cc, uint8_t value) {
@@ -44,23 +48,25 @@ void sendCC(uint8_t cc, uint8_t value) {
 void setup() {
   for (uint8_t b = 0; b < 4; b++) pinMode(SELECT_PINS[b], OUTPUT);
   for (uint8_t i = 0; i < NUM_POTS; i++) {
-    filtered[i] = readPot(i);
-    lastSentRaw[i] = -100;
-    lastSentCc[i] = -1;
+    filt[i] = (int32_t)readPot(i) * 16;
+    lastCc[i] = -1;
   }
 }
 
 void loop() {
   bool sent = false;
   for (uint8_t i = 0; i < NUM_POTS; i++) {
-    int raw = readPot(i);
-    filtered[i] += (raw - filtered[i]) / 4;
-    int cc = filtered[i] >> 3;  // 0..1023 -> 0..127
-    if (cc != lastSentCc[i] && abs(filtered[i] - lastSentRaw[i]) >= HYSTERESIS) {
-      sendCC(CC_FIRST + i, cc);
-      lastSentCc[i] = cc;
-      lastSentRaw[i] = filtered[i];
-      sent = true;
+    filt[i] += ((int32_t)readPot(i) * 16 - filt[i]) / 8;  // экспоненциальное сглаживание
+    int v = filt[i] / 16;                                // 0..1023
+    int lo = lastCc[i] * 8 - MARGIN;
+    int hi = lastCc[i] * 8 + 7 + MARGIN;
+    if (lastCc[i] < 0 || v < lo || v > hi) {
+      int cc = v >> 3;  // 0..127
+      if (cc != lastCc[i]) {
+        sendCC(CC_FIRST + i, cc);
+        lastCc[i] = cc;
+        sent = true;
+      }
     }
   }
   if (sent) MidiUSB.flush();
