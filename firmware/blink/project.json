@@ -1,0 +1,6 @@
+{
+  "name": "Blink (проверка)",
+  "description": "Мигает встроенным светодиодом. Удобно проверить, что прошивка заливается.",
+  "boards": ["leonardo", "micro", "uno", "nano", "mega", "esp32"],
+  "libraries": []
+}
