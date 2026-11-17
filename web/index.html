@@ -374,12 +374,12 @@ async function openBootloader(proto, dev) {
   log("Перезагружаю плату в режим загрузчика…");
   try { await port.setLine(1200, false); } catch (e) { /* плата уже ушла в перезагрузку */ }
   await port.close();
-  await waitDisconnect(dev, 2000);
-  await sleep(700);
+  await waitDisconnect(dev, 1500);
+  await sleep(300);
 
   // Загрузчик — другое USB-устройство. Если разрешение на него уже есть, подхватываем сами.
   const t0 = performance.now();
-  while (performance.now() - t0 < 2500) {
+  while (performance.now() - t0 < 1000) {
     const found = (await navigator.usb.getDevices()).find((d) => d !== dev);
     if (found) { dev = found; log("Загрузчик найден: " + devName(dev)); break; }
     await sleep(100);
