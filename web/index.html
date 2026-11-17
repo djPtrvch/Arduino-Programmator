@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a7cff">
 <title>Arduino Programmator</title>
 <style>
 :root {
@@ -15,14 +15,14 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
-  font: 16px/1.45 -apple-system, system-ui, sans-serif; }
+  font: 16px/1.45 -apple-system, system-ui, Roboto, sans-serif; }
 main { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
 h1 { font-size: 22px; margin: 8px 0 4px; }
 h2 { font-size: 17px; margin: 0 0 12px; }
 .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
 label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
-select, input[type=text], input[type=password], input[type=url] {
+select, input[type=url] {
   width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--bg); color: var(--text); font-size: 16px; }
 button { appearance: none; border: 0; border-radius: 10px; padding: 12px 16px; font-size: 16px;
@@ -31,29 +31,30 @@ button.secondary { background: var(--line); color: var(--text); }
 button:disabled { opacity: .5; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .row > * { flex: 1 1 auto; }
-.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; vertical-align: middle; }
 .pill.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
-.pill.off { background: var(--line); color: var(--muted); }
+.pill.off { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
 .desc { font-size: 14px; color: var(--muted); margin-top: 6px; }
-progress { width: 100%; height: 8px; margin-top: 14px; accent-color: var(--accent); }
+progress { width: 100%; height: 8px; margin-bottom: 10px; accent-color: var(--accent); }
 #log { font: 13px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 260px;
-  overflow: auto; background: var(--bg); border-radius: 10px; padding: 10px; margin: 0; }
+  overflow: auto; background: var(--bg); border-radius: 10px; padding: 10px; margin: 0; min-height: 40px; }
 .ok { color: var(--ok); } .err { color: var(--err); }
 .hidden { display: none !important; }
 details summary { cursor: pointer; font-weight: 600; }
+#prompt { position: fixed; inset: 0; background: rgb(0 0 0 / .55); display: flex; align-items: center;
+  justify-content: center; padding: 16px; z-index: 10; }
+#prompt .card { max-width: 420px; width: 100%; text-align: center; }
+#prompt button { width: 100%; padding: 16px; font-size: 18px; }
 </style>
 </head>
 <body>
 <main>
   <h1>Arduino Programmator</h1>
-  <p class="sub" id="modeLine">Определяю режим…</p>
+  <p class="sub">Прошивка Arduino по USB прямо из Chrome на Android.</p>
 
-  <section class="card" id="bridgeCard">
-    <h2>Мост ESP32 <span id="bridgePill" class="pill off">нет связи</span></h2>
-    <div id="bridgeInfo" class="desc"></div>
-    <div class="row">
-      <button class="secondary" id="chipBtn">Проверить чип</button>
-    </div>
+  <section class="card">
+    <h2>USB <span id="usbPill" class="pill off">…</span></h2>
+    <div class="desc" id="usbInfo"></div>
   </section>
 
   <section class="card">
@@ -90,36 +91,33 @@ details summary { cursor: pointer; font-weight: 600; }
   <section class="card">
     <details>
       <summary>Настройки</summary>
-      <label for="catalogUrl">Адрес каталога прошивок (GitHub Pages)</label>
+      <label for="catalogUrl">Адрес каталога прошивок</label>
       <input type="url" id="catalogUrl">
       <div class="row"><button class="secondary" id="saveCatalogBtn">Сохранить и обновить</button></div>
-
-      <div id="bridgeSettings">
-        <label for="ssid">Домашний Wi-Fi для моста (SSID)</label>
-        <input type="text" id="ssid" autocapitalize="off" autocorrect="off">
-        <label for="pass">Пароль</label>
-        <input type="password" id="pass">
-        <div class="row"><button class="secondary" id="wifiBtn">Сохранить Wi-Fi и перезапустить мост</button></div>
-
-        <label for="bridgeFile">Обновить прошивку моста (.bin)</label>
-        <input type="file" id="bridgeFile" accept=".bin">
-        <div class="row">
-          <button class="secondary" id="bridgeUpdateCatalogBtn">Из каталога</button>
-          <button class="secondary" id="bridgeUpdateFileBtn">Из файла</button>
-        </div>
-      </div>
     </details>
   </section>
 </main>
+
+<div id="prompt" class="hidden">
+  <div class="card">
+    <h2 id="promptTitle"></h2>
+    <p class="desc" id="promptText"></p>
+    <button id="promptBtn"></button>
+    <div class="row"><button class="secondary" id="promptCancel">Отмена</button></div>
+  </div>
+</div>
 
 <script>
 "use strict";
 // Профили плат подставляются при сборке из boards.json.
 const BOARDS = /*@BOARDS@*/null;
-const DEFAULT_CATALOG = "https://djptrvch.github.io/Arduino-Programmator/";
+// Arduino, Arduino.org, SparkFun, Adafruit, Pololu
+const USB_FILTERS = [0x2341, 0x2a03, 0x1b4f, 0x239a, 0x1ffb].map((vendorId) => ({ vendorId }));
 
 const $ = (id) => document.getElementById(id);
-const state = { bridge: null, manifest: null, boards: BOARDS || {} };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const state = { manifest: null, boards: BOARDS || {} };
+const hasUsb = "usb" in navigator;
 
 function store(key, value) {
   try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); }
@@ -134,10 +132,29 @@ function log(msg, cls) {
   $("log").scrollTop = $("log").scrollHeight;
 }
 
+function progress(v) {
+  const bar = $("progress");
+  bar.classList.toggle("hidden", v == null);
+  if (v != null) bar.value = v;
+}
+
 function catalogUrl() {
-  let u = store("catalogUrl") || DEFAULT_CATALOG;
-  if (!u.endsWith("/")) u += "/";
+  let u = store("catalogUrl") || (location.protocol.startsWith("http") ? new URL("./", location.href).href : "");
+  if (u && !u.endsWith("/")) u += "/";
   return u;
+}
+
+// Кнопка во всплывающем окне: Chrome разрешает выбор USB-устройства только по нажатию.
+function askUser(title, text, button) {
+  return new Promise((resolve) => {
+    $("promptTitle").textContent = title;
+    $("promptText").textContent = text;
+    $("promptBtn").textContent = button;
+    $("prompt").classList.remove("hidden");
+    const done = (v) => { $("prompt").classList.add("hidden"); resolve(v); };
+    $("promptBtn").onclick = () => done(true);
+    $("promptCancel").onclick = () => done(false);
+  });
 }
 
 // ---------- Intel HEX -> страницы
@@ -164,86 +181,228 @@ function parseHex(text) {
   return mem;
 }
 
-function buildRecords(mem, board) {
+// -> [{addr, data: Uint8Array(pageSize)}], пустые страницы пропущены
+function toPages(mem, board) {
   const ps = board.pageSize;
   const pages = new Map();
   for (const [addr, b] of mem) {
-    if (addr >= board.flashSize) throw new Error(`Прошивка не помещается: адрес 0x${addr.toString(16)} > ${board.flashSize} байт`);
+    if (addr >= board.flashSize)
+      throw new Error(`Прошивка не помещается: ${board.name} — максимум ${board.flashSize} байт`);
     const pa = addr - (addr % ps);
     if (!pages.has(pa)) pages.set(pa, new Uint8Array(ps).fill(0xff));
     pages.get(pa)[addr - pa] = b;
   }
-  const addrs = [...pages.keys()].filter((a) => pages.get(a).some((b) => b !== 0xff)).sort((a, b) => a - b);
-  const out = new Uint8Array(addrs.length * (4 + ps));
-  addrs.forEach((a, i) => {
-    const off = i * (4 + ps);
-    new DataView(out.buffer).setUint32(off, a, true);
-    out.set(pages.get(a), off + 4);
-  });
-  return { data: out, pages: addrs.length, bytes: mem.size };
+  return [...pages.entries()]
+    .filter(([, d]) => d.some((b) => b !== 0xff))
+    .sort((a, b) => a[0] - b[0])
+    .map(([addr, data]) => ({ addr, data }));
 }
 
-// ---------- HTTP
+// ---------- USB CDC-ACM поверх WebUSB
 
-function upload(url, blob, name) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const fd = new FormData();
-    fd.append("file", blob, name);
-    xhr.open("POST", url);
-    const bar = $("progress");
-    bar.classList.remove("hidden");
-    bar.value = 0;
-    xhr.upload.onprogress = (e) => { if (e.lengthComputable) bar.value = e.loaded / e.total; };
-    xhr.onload = () => {
-      bar.value = 1;
-      let body = {};
-      try { body = JSON.parse(xhr.responseText); } catch (e) { body = { error: xhr.responseText }; }
-      if (xhr.status === 200 && body.ok) resolve(body);
-      else reject(new Error(body.error || `HTTP ${xhr.status}`));
-    };
-    xhr.onerror = () => reject(new Error("Нет связи с мостом"));
-    xhr.send(fd);
-  });
+class CdcPort {
+  constructor(device) { this.device = device; this.buf = []; this.closed = false; }
+
+  async open() {
+    const d = this.device;
+    if (!d.opened) await d.open();
+    if (!d.configuration) await d.selectConfiguration(1);
+    const ifaces = d.configuration.interfaces;
+    const comm = ifaces.find((i) => i.alternates[0].interfaceClass === 0x02);
+    const data = ifaces.find((i) => i.alternates[0].interfaceClass === 0x0a);
+    if (!data) throw new Error("Устройство не похоже на последовательный порт Arduino");
+    this.commIf = comm ? comm.interfaceNumber : data.interfaceNumber;
+    if (comm) await d.claimInterface(comm.interfaceNumber);
+    await d.claimInterface(data.interfaceNumber);
+    const eps = data.alternates[0].endpoints;
+    this.epIn = eps.find((e) => e.direction === "in" && e.type === "bulk").endpointNumber;
+    this.epOut = eps.find((e) => e.direction === "out" && e.type === "bulk").endpointNumber;
+    this.readLoop();
+  }
+
+  async readLoop() {
+    while (!this.closed) {
+      try {
+        const r = await this.device.transferIn(this.epIn, 64);
+        if (r.data) for (let i = 0; i < r.data.byteLength; i++) this.buf.push(r.data.getUint8(i));
+      } catch (e) { this.closed = true; }
+    }
+  }
+
+  control(request, value, data) {
+    const setup = { requestType: "class", recipient: "interface", request, value, index: this.commIf };
+    return this.device.controlTransferOut(setup, data);
+  }
+
+  async setLine(baud, dtr) {
+    const lc = new DataView(new ArrayBuffer(7));
+    lc.setUint32(0, baud, true);
+    lc.setUint8(6, 8); // 8N1
+    await this.control(0x20, 0, lc.buffer);          // SET_LINE_CODING
+    await this.control(0x22, dtr ? 0x03 : 0x00);     // SET_CONTROL_LINE_STATE (DTR|RTS)
+  }
+
+  async write(bytes) {
+    const u8 = Uint8Array.from(bytes);
+    for (let i = 0; i < u8.length; i += 64) await this.device.transferOut(this.epOut, u8.slice(i, i + 64));
+  }
+
+  async read(n, timeout = 1000) {
+    const until = performance.now() + timeout;
+    while (this.buf.length < n) {
+      if (this.closed) throw new Error("Устройство отключилось");
+      if (performance.now() > until) throw new Error(`Нет ответа от платы (тайм-аут ${timeout} мс)`);
+      await sleep(2);
+    }
+    return this.buf.splice(0, n);
+  }
+
+  async close() {
+    this.closed = true;
+    try { await this.device.close(); } catch (e) { /* уже отключено */ }
+  }
 }
 
-async function getJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  const body = await r.json();
-  if (!r.ok || body.ok === false) throw new Error(body.error || `HTTP ${r.status}`);
-  return body;
+// ---------- Протокол AVR109 (загрузчик Caterina: Leonardo, Micro, Pro Micro)
+
+const AVR109 = {
+  async probe(port) {
+    port.buf.length = 0;
+    await port.write([0x53]); // 'S'
+    try { return String.fromCharCode(...(await port.read(7, 400))) === "CATERIN"; }
+    catch (e) { return false; }
+  },
+
+  async cmd(port, bytes, timeout) {
+    await port.write(bytes);
+    const [r] = await port.read(1, timeout);
+    if (r !== 0x0d) throw new Error(`Загрузчик ответил 0x${r.toString(16)} вместо подтверждения`);
+  },
+
+  async flash(port, pages, board) {
+    await port.write([0x73]); // 's' — сигнатура (младший байт первым)
+    const sig = (await port.read(3)).reverse().map((b) => b.toString(16).padStart(2, "0")).join("");
+    if (board.signature && sig !== board.signature)
+      throw new Error(`Чип ${sig}, а выбранная плата ожидает ${board.signature}`);
+    log(`Чип найден, сигнатура ${sig}`);
+
+    await this.cmd(port, [0x50]);             // 'P' — вход в режим программирования
+    await this.cmd(port, [0x65], 10000);      // 'e' — стирание
+    const ps = board.pageSize;
+    const setAddr = (a) => this.cmd(port, [0x41, (a >> 9) & 0xff, (a >> 1) & 0xff]); // 'A', адрес в словах
+    const total = pages.length * 2;
+    let done = 0;
+
+    for (const p of pages) {
+      await setAddr(p.addr);
+      await this.cmd(port, [0x42, ps >> 8, ps & 0xff, 0x46, ...p.data], 2000); // 'B' .. 'F'
+      progress(++done / total);
+    }
+    for (const p of pages) {
+      await setAddr(p.addr);
+      await port.write([0x67, ps >> 8, ps & 0xff, 0x46]); // 'g' .. 'F' — чтение
+      const back = await port.read(ps);
+      const bad = back.findIndex((b, i) => b !== p.data[i]);
+      if (bad >= 0) throw new Error(`Проверка не прошла по адресу 0x${(p.addr + bad).toString(16)}`);
+      progress(++done / total);
+    }
+    await this.cmd(port, [0x4c]); // 'L' — выход из режима программирования
+    await port.write([0x45]);     // 'E' — запуск программы
+    await sleep(100);
+  },
+};
+
+const PROTOCOLS = { avr109: AVR109 };
+
+// ---------- Подключение к загрузчику
+
+async function pickDevice(title, text, button) {
+  const known = await navigator.usb.getDevices();
+  if (known.length === 1) return known[0];
+  if (!(await askUser(title, text, button))) throw new Error("Отменено");
+  try { return await navigator.usb.requestDevice({ filters: USB_FILTERS }); }
+  catch (e) {
+    try { return await navigator.usb.requestDevice({ filters: [] }); }
+    catch (e2) { throw new Error("Устройство не выбрано"); }
+  }
 }
 
-// ---------- Прошивка
+async function waitDisconnect(device, ms) {
+  const until = performance.now() + ms;
+  while (performance.now() < until) {
+    if (!(await navigator.usb.getDevices()).includes(device)) return;
+    await sleep(50);
+  }
+}
+
+async function openBootloader(proto) {
+  let dev = await pickDevice("Подключите плату", "Подключите Arduino к телефону кабелем USB-C и выберите её в списке.", "Выбрать плату");
+  let port = new CdcPort(dev);
+  await port.open();
+  if (await proto.probe(port)) return port;
+
+  log("Перезагружаю плату в режим загрузчика…");
+  try { await port.setLine(1200, false); } catch (e) { /* плата уже ушла в перезагрузку */ }
+  await port.close();
+  await waitDisconnect(dev, 2000);
+  await sleep(700);
+
+  // Загрузчик — другое USB-устройство. Если разрешение на него уже есть, подхватываем сами.
+  const t0 = performance.now();
+  while (performance.now() - t0 < 2500) {
+    const found = (await navigator.usb.getDevices()).find((d) => d !== dev);
+    if (found) { dev = found; break; }
+    await sleep(100);
+  }
+  if (dev === port.device) {
+    if (!(await askUser("Загрузчик готов", "Плата ждёт прошивку 8 секунд. Нажмите кнопку и выберите устройство в списке.", "Выбрать загрузчик")))
+      throw new Error("Отменено");
+    try { dev = await navigator.usb.requestDevice({ filters: USB_FILTERS }); }
+    catch (e) { throw new Error("Загрузчик не выбран. Попробуйте ещё раз (можно дважды нажать RESET на плате)."); }
+  }
+  port = new CdcPort(dev);
+  await port.open();
+  if (!(await proto.probe(port))) {
+    await port.close();
+    throw new Error("Загрузчик не отвечает. Дважды нажмите RESET на плате и сразу «Прошить».");
+  }
+  return port;
+}
 
 async function flashHexText(text, boardId, label) {
   const board = state.boards[boardId];
   if (!board) throw new Error("Неизвестная плата: " + boardId);
-  if (board.method !== "isp") throw new Error(`Плата «${board.name}» прошивается не через мост (метод: ${board.method}). Скачайте файл.`);
-  if (!state.bridge) throw new Error("Мост не найден. Откройте эту страницу с моста: http://192.168.4.1 или http://programmer.local");
-  const { data, pages, bytes } = buildRecords(parseHex(text), board);
-  log(`${label}: ${bytes} байт, ${pages} стр. по ${board.pageSize} → ${board.name}`);
-  const q = new URLSearchParams({ page: board.pageSize, flash: board.flashSize, sig: board.signature });
+  const proto = PROTOCOLS[board.method];
+  if (!proto) throw new Error(`«${board.name}» пока нельзя прошить из браузера (метод: ${board.method}). Скачайте файл.`);
+  if (!hasUsb) throw new Error("Браузер не поддерживает WebUSB. Откройте страницу в Chrome на Android.");
+  const pages = toPages(parseHex(text), board);
+  log(`${label}: ${pages.length} стр. по ${board.pageSize} байт → ${board.name}`);
+  const port = await openBootloader(proto);
   const t0 = performance.now();
-  const res = await upload("/api/flash?" + q, new Blob([data]), "fw.bin");
-  log(`Готово: записано и проверено ${res.pages} стр. за ${((performance.now() - t0) / 1000).toFixed(1)} с`, "ok");
-}
-
-async function run(btn, fn) {
-  const buttons = document.querySelectorAll("button");
-  buttons.forEach((b) => (b.disabled = true));
-  try { await fn(); }
-  catch (e) { log(e.message, "err"); }
-  finally { buttons.forEach((b) => (b.disabled = false)); updateButtons(); }
-}
-
-function selectedBuild() {
-  const p = state.manifest?.projects.find((x) => x.id === $("project").value);
-  const b = p?.builds[$("board").value];
-  return { project: p, build: b, boardId: $("board").value };
+  progress(0);
+  try {
+    await proto.flash(port, pages, board);
+  } finally {
+    await port.close();
+  }
+  log(`Готово: записано и проверено за ${((performance.now() - t0) / 1000).toFixed(1)} с. Плата запущена.`, "ok");
 }
 
 // ---------- UI
+
+async function run(fn) {
+  const buttons = document.querySelectorAll("main button");
+  buttons.forEach((b) => (b.disabled = true));
+  try { await fn(); }
+  catch (e) { log(e.message, "err"); }
+  finally { progress(null); buttons.forEach((b) => (b.disabled = false)); updateButtons(); }
+}
+
+function selectedBuild() {
+  const project = state.manifest?.projects.find((x) => x.id === $("project").value);
+  const boardId = $("board").value;
+  return { project, build: project?.builds[boardId], boardId };
+}
 
 function fillBoards(select, ids) {
   const prev = select.value;
@@ -268,16 +427,17 @@ function renderProject() {
 
 function updateButtons() {
   const { build, boardId } = selectedBuild();
-  const isp = state.boards[boardId]?.method === "isp";
-  $("flashCatalogBtn").disabled = !build || !state.bridge || !isp;
+  const flashable = !!PROTOCOLS[state.boards[boardId]?.method];
+  $("flashCatalogBtn").disabled = !build || !hasUsb || !flashable;
   $("downloadBtn").disabled = !build;
-  $("flashFileBtn").disabled = !state.bridge;
-  $("chipBtn").disabled = !state.bridge;
+  $("flashFileBtn").disabled = !hasUsb;
 }
 
 async function loadCatalog() {
   try {
-    state.manifest = await getJson(catalogUrl() + "manifest.json");
+    const r = await fetch(catalogUrl() + "manifest.json", { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    state.manifest = await r.json();
     Object.assign(state.boards, state.manifest.boards || {});
     const sel = $("project");
     sel.innerHTML = "";
@@ -293,45 +453,31 @@ async function loadCatalog() {
     $("catalogInfo").textContent = `Сборка ${state.manifest.commit.slice(0, 7)} от ${when}`;
     renderProject();
   } catch (e) {
-    $("catalogInfo").textContent = "Каталог недоступен (нет интернета?). Используйте прошивку из файла.";
+    $("catalogInfo").textContent = "Каталог недоступен. Можно прошить .hex из файла.";
   }
-  fillBoards($("fileBoard"), Object.keys(state.boards).filter((id) => state.boards[id].method === "isp"));
+  fillBoards($("fileBoard"), Object.keys(state.boards).filter((id) => PROTOCOLS[state.boards[id].method]));
+  updateButtons();
 }
 
-async function detectBridge() {
-  try {
-    state.bridge = await getJson("/api/status");
-  } catch (e) {
-    state.bridge = null;
-  }
-  const b = state.bridge;
-  $("bridgePill").className = "pill " + (b ? "ok" : "off");
-  $("bridgePill").textContent = b ? "на связи" : "нет связи";
-  $("bridgeSettings").classList.toggle("hidden", !b);
-  if (b) {
-    $("modeLine").textContent = "Страница открыта с моста — можно прошивать.";
-    $("bridgeInfo").textContent = `Версия ${b.bridge}. Точка доступа ${b.apIp}. ` +
-      (b.staConnected ? `Домашний Wi-Fi «${b.staSsid}»: ${b.staIp} (http://programmer.local)` : "Домашний Wi-Fi не подключён.");
-    $("ssid").value = b.staSsid || "";
-  } else {
-    $("modeLine").textContent = "Режим каталога: прошивки можно смотреть и скачивать. Чтобы прошивать, откройте страницу с моста (http://192.168.4.1).";
-    $("bridgeInfo").textContent = "";
-  }
-  updateButtons();
+function showUsbStatus() {
+  $("usbPill").className = "pill " + (hasUsb ? "ok" : "off");
+  $("usbPill").textContent = hasUsb ? "доступен" : "недоступен";
+  $("usbInfo").textContent = hasUsb
+    ? "Подключите плату кабелем USB-C и нажмите «Прошить». Поддерживаются Leonardo, Micro и другие платы на ATmega32U4."
+    : "Этот браузер не умеет работать с USB (например, Safari на iPad). Здесь можно смотреть и скачивать прошивки, а прошивать — в Chrome на Android.";
 }
 
 $("project").onchange = () => { store("project", $("project").value); renderProject(); };
 $("board").onchange = () => { store("board", $("board").value); updateButtons(); };
 
-$("flashCatalogBtn").onclick = (e) => run(e.target, async () => {
+$("flashCatalogBtn").onclick = () => run(async () => {
   const { project, build, boardId } = selectedBuild();
-  log(`Скачиваю ${build.file}…`);
   const r = await fetch(catalogUrl() + build.file, { cache: "no-store" });
   if (!r.ok) throw new Error(`Не удалось скачать прошивку: HTTP ${r.status}`);
   await flashHexText(await r.text(), boardId, project.name);
 });
 
-$("downloadBtn").onclick = (e) => run(e.target, async () => {
+$("downloadBtn").onclick = () => run(async () => {
   const { project, build, boardId } = selectedBuild();
   const r = await fetch(catalogUrl() + build.file, { cache: "no-store" });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -341,51 +487,21 @@ $("downloadBtn").onclick = (e) => run(e.target, async () => {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  log(`Скачано: ${a.download} (сохраняется в «Файлы» → Загрузки)`, "ok");
+  log(`Скачано: ${a.download}`, "ok");
 });
 
-$("flashFileBtn").onclick = (e) => run(e.target, async () => {
+$("flashFileBtn").onclick = () => run(async () => {
   const f = $("file").files[0];
   if (!f) throw new Error("Выберите .hex-файл");
   store("board", $("fileBoard").value);
   await flashHexText(await f.text(), $("fileBoard").value, f.name);
 });
 
-$("chipBtn").onclick = (e) => run(e.target, async () => {
-  const c = await getJson("/api/chip");
-  const match = Object.values(state.boards).filter((b) => b.signature === c.signature).map((b) => b.name);
-  log(`Сигнатура ${c.signature} (${match.join(", ") || "неизвестный чип"}), fuse L=${c.lfuse} H=${c.hfuse} E=${c.efuse}, lock=${c.lock}`, "ok");
-});
-
 $("saveCatalogBtn").onclick = () => { store("catalogUrl", $("catalogUrl").value.trim()); loadCatalog(); };
 
-$("wifiBtn").onclick = (e) => run(e.target, async () => {
-  const body = new URLSearchParams({ ssid: $("ssid").value, pass: $("pass").value });
-  await fetch("/api/wifi", { method: "POST", body });
-  log("Мост перезапускается. Через ~15 с откройте http://programmer.local (в домашней сети) или снова 192.168.4.1.", "ok");
-});
-
-async function updateBridge(blob) {
-  log(`Обновляю мост (${blob.size} байт)…`);
-  await upload("/api/bridge-update", blob, "bridge.bin");
-  log("Мост обновлён и перезапускается. Обновите страницу через ~15 с.", "ok");
-}
-
-$("bridgeUpdateCatalogBtn").onclick = (e) => run(e.target, async () => {
-  if (!state.manifest?.bridge) throw new Error("В каталоге нет прошивки моста");
-  const r = await fetch(catalogUrl() + state.manifest.bridge.file, { cache: "no-store" });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  await updateBridge(await r.blob());
-});
-
-$("bridgeUpdateFileBtn").onclick = (e) => run(e.target, async () => {
-  const f = $("bridgeFile").files[0];
-  if (!f) throw new Error("Выберите .bin-файл");
-  await updateBridge(f);
-});
-
 $("catalogUrl").value = catalogUrl();
-detectBridge().then(loadCatalog);
+showUsbStatus();
+loadCatalog();
 </script>
 </body>
 </html>

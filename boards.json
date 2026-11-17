@@ -3,51 +3,37 @@
     "name": "Arduino Leonardo (ATmega32U4)",
     "fqbn": "arduino:avr:leonardo",
     "core": "arduino:avr",
-    "method": "isp",
+    "method": "avr109",
     "signature": "1e9587",
     "pageSize": 128,
-    "flashSize": 32768,
-    "withBootloader": true
+    "flashSize": 28672
   },
   "micro": {
     "name": "Arduino Micro (ATmega32U4)",
     "fqbn": "arduino:avr:micro",
     "core": "arduino:avr",
-    "method": "isp",
+    "method": "avr109",
     "signature": "1e9587",
     "pageSize": 128,
-    "flashSize": 32768,
-    "withBootloader": true
+    "flashSize": 28672
   },
   "uno": {
     "name": "Arduino Uno (ATmega328P)",
     "fqbn": "arduino:avr:uno",
     "core": "arduino:avr",
-    "method": "isp",
-    "signature": "1e950f",
-    "pageSize": 128,
-    "flashSize": 32768,
-    "withBootloader": true
+    "method": "download"
   },
   "nano": {
     "name": "Arduino Nano (ATmega328P)",
     "fqbn": "arduino:avr:nano:cpu=atmega328",
     "core": "arduino:avr",
-    "method": "isp",
-    "signature": "1e950f",
-    "pageSize": 128,
-    "flashSize": 32768,
-    "withBootloader": true
+    "method": "download"
   },
   "mega": {
     "name": "Arduino Mega 2560",
     "fqbn": "arduino:avr:mega:cpu=atmega2560",
     "core": "arduino:avr",
-    "method": "isp",
-    "signature": "1e9801",
-    "pageSize": 256,
-    "flashSize": 262144,
-    "withBootloader": true
+    "method": "download"
   },
   "esp32": {
     "name": "ESP32 Dev Module",

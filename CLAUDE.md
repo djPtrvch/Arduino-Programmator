@@ -1,6 +1,6 @@
 # Правила для ИИ-ассистентов
 
-Пользователь работает **только с iPad**. Локально ничего не компилирует: всё собирает GitHub Actions (`tools/build.py`), прошивает ESP32-мост по Wi-Fi. Отвечай коротко, по-русски.
+У пользователя iPad и Android (Pixel 7). Локально ничего не компилирует: всё собирает GitHub Actions (`tools/build.py`), прошивка — из Chrome на Android по USB (WebUSB, `web/index.html`). Отвечай коротко, по-русски.
 
 ## Новый проект прошивки
 1. Создай `firmware/<id>/<id>.ino` (имя `.ino` = имя папки, латиница, без пробелов).
@@ -16,13 +16,13 @@
 ## Новая плата
 Добавь запись в `boards.json`:
 - `fqbn`, `core` (ядро для `arduino-cli core install`; для не-arduino/esp32 ядер добавь URL индекса в `tools/build.py`);
-- `method`: `isp` — прошивка мостом (только AVR); `download` — только скачивание;
-- для `isp`: `signature` (3 байта hex из даташита), `pageSize` (байт), `flashSize` (байт), `withBootloader: true`.
+- `method`: протокол прошивки из `PROTOCOLS` в `web/index.html` (сейчас `avr109`) или `download` — только скачивание;
+- для `avr109`: `signature` (3 байта hex), `pageSize` (байт), `flashSize` — размер области программы без загрузчика (32U4: 28672).
+- Новый протокол (STK500v1 для Uno, STK500v2 для Mega, esptool для ESP32) = новый объект в `PROTOCOLS` с методами `probe(port)` и `flash(port, pages, board)`; USB-VID платы добавь в `USB_FILTERS`. Для плат с CH340/CP2102 нужен свой драйвер поверх WebUSB (они не CDC-ACM).
 
-## Мост и веб-интерфейс
-- `web/index.html` — один файл без внешних зависимостей (должен работать офлайн на точке доступа моста). Маркер `/*@BOARDS@*/null` не трогать.
-- После правки `web/index.html` выполни `python3 tools/build.py --webui-only` и закоммить `bridge/web_ui.h`.
-- API моста: `GET /api/status`, `GET /api/chip`, `POST /api/flash?page=&flash=&sig=` (multipart; записи `[u32 LE адрес][страница]`), `POST /api/bridge-update`, `POST /api/wifi`.
+## Веб-программатор
+- `web/index.html` — один файл без внешних зависимостей. Маркер `/*@BOARDS@*/null` не трогать.
+- Работает только по HTTPS (GitHub Pages) в Chrome на Android/компьютере; в Safari WebUSB нет.
 
 ## Проверка
-Локальная сборка (если есть arduino-cli): `python3 tools/build.py --no-bridge`. Иначе смотри результат GitHub Actions.
+Локально (если есть arduino-cli): `python3 tools/build.py`. Иначе смотри результат GitHub Actions.
