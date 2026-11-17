@@ -62,6 +62,7 @@ details summary { cursor: pointer; font-weight: 600; }
   <section class="card">
     <h2>USB <span id="usbPill" class="pill off">…</span></h2>
     <div class="desc" id="usbInfo"></div>
+    <div class="row"><button class="secondary" id="usbTestBtn">Проверить USB</button></div>
   </section>
 
   <section class="card">
@@ -340,6 +341,7 @@ async function chooseUsb(hint) {
     // Пустой фильтр — показываем все устройства: у клонов Arduino бывают другие VID.
     return await navigator.usb.requestDevice({ filters: [] });
   } catch (e) {
+    log(`Chrome: ${e.name}: ${e.message}`);
     if (e.name === "NotFoundError")
       throw new Error(`${hint} В окне Chrome нужно нажать на устройство, затем «Подключить». ` +
         "Если список пустой — плата не видна телефону: проверьте кабель (нужен кабель с передачей данных) и переподключите его.");
@@ -527,6 +529,23 @@ $("flashFileBtn").onclick = () => run(async () => {
   store("board", $("fileBoard").value);
   const dev = await pickDevice();
   await flashHexText(await f.text(), $("fileBoard").value, f.name, dev);
+});
+
+$("usbTestBtn").onclick = () => run(async () => {
+  const known = await navigator.usb.getDevices();
+  log(`Уже разрешены: ${known.length ? known.map(devName).join(", ") : "нет"}`);
+  log("Открываю список USB-устройств Chrome…");
+  const d = await chooseUsb("Устройство не выбрано.");
+  log("Выбрано: " + devName(d), "ok");
+  try {
+    await d.open();
+    if (!d.configuration) await d.selectConfiguration(1);
+    const ifs = d.configuration.interfaces.map((i) => `#${i.interfaceNumber} класс ${i.alternates[0].interfaceClass}`);
+    log("Интерфейсы: " + ifs.join(", "), "ok");
+    await d.close();
+  } catch (e) {
+    log(`Открыть не удалось: ${e.name}: ${e.message}`, "err");
+  }
 });
 
 $("saveCatalogBtn").onclick = () => { store("catalogUrl", $("catalogUrl").value.trim()); loadCatalog(); };
