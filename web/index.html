@@ -41,6 +41,13 @@ progress { width: 100%; height: 8px; margin-bottom: 10px; accent-color: var(--ac
 .ok { color: var(--ok); } .err { color: var(--err); }
 .hidden { display: none !important; }
 details summary { cursor: pointer; font-weight: 600; }
+.cc { display: grid; grid-template-columns: 76px 1fr 36px; gap: 10px; align-items: center; margin-top: 8px;
+  font: 14px var(--mono); }
+.cc .bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+.cc .bar i { display: block; height: 100%; background: var(--accent); }
+.cc b { text-align: right; font-weight: 600; }
+#midiLog { font: 13px/1.5 var(--mono); white-space: pre-wrap; background: var(--bg); border-radius: 10px;
+  padding: 10px; margin: 12px 0 0; max-height: 140px; overflow: auto; }
 #prompt { position: fixed; inset: 0; background: rgb(0 0 0 / .55); display: flex; align-items: center;
   justify-content: center; padding: 16px; z-index: 10; }
 #prompt .card { max-width: 420px; width: 100%; text-align: center; }
@@ -86,6 +93,14 @@ details summary { cursor: pointer; font-weight: 600; }
     <h2>Журнал</h2>
     <progress id="progress" value="0" max="1" class="hidden"></progress>
     <pre id="log"></pre>
+  </section>
+
+  <section class="card">
+    <h2>MIDI-монитор</h2>
+    <div class="desc" id="midiInfo">Показывает, что присылает MIDI-контроллер. Сначала прошейте плату, потом включите монитор.</div>
+    <div class="row"><button class="secondary" id="midiBtn">Включить</button></div>
+    <div id="midiCcs"></div>
+    <pre id="midiLog" class="hidden"></pre>
   </section>
 
   <section class="card">
@@ -498,6 +513,68 @@ $("flashFileBtn").onclick = () => run(async () => {
 });
 
 $("saveCatalogBtn").onclick = () => { store("catalogUrl", $("catalogUrl").value.trim()); loadCatalog(); };
+
+// ---------- MIDI-монитор (Web MIDI)
+
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const ccRows = new Map();
+
+function showCc(ch, cc, val) {
+  const key = `${ch}:${cc}`;
+  let row = ccRows.get(key);
+  if (!row) {
+    row = document.createElement("div");
+    row.className = "cc";
+    row.innerHTML = `<span></span><div class="bar"><i></i></div><b></b>`;
+    row.firstChild.textContent = `CC${cc} к${ch}`;
+    ccRows.set(key, row);
+    const rows = [...ccRows.entries()].sort((a, b) => {
+      const [ac, an] = a[0].split(":").map(Number), [bc, bn] = b[0].split(":").map(Number);
+      return ac - bc || an - bn;
+    });
+    rows.forEach(([, r]) => $("midiCcs").appendChild(r));
+  }
+  row.querySelector("i").style.width = `${(val / 127) * 100}%`;
+  row.querySelector("b").textContent = val;
+}
+
+function midiLog(text) {
+  const el = $("midiLog");
+  el.classList.remove("hidden");
+  el.textContent = (text + "\n" + el.textContent).split("\n").slice(0, 30).join("\n");
+}
+
+function onMidi(e) {
+  const [st, d1, d2] = e.data;
+  const type = st & 0xf0, ch = (st & 0x0f) + 1;
+  if (type === 0xb0) showCc(ch, d1, d2);
+  else if (type === 0x90 && d2 > 0) midiLog(`Нота ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} вкл, сила ${d2}, к${ch}`);
+  else if (type === 0x80 || type === 0x90) midiLog(`Нота ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} выкл, к${ch}`);
+  else if (st < 0xf8) midiLog([...e.data].map((b) => b.toString(16).padStart(2, "0")).join(" "));
+}
+
+$("midiBtn").onclick = async () => {
+  if (!navigator.requestMIDIAccess) {
+    $("midiInfo").textContent = "Этот браузер не поддерживает Web MIDI. Откройте страницу в Chrome на Android.";
+    return;
+  }
+  try {
+    const access = await navigator.requestMIDIAccess();
+    const attach = () => {
+      const names = [];
+      access.inputs.forEach((inp) => { inp.onmidimessage = onMidi; names.push(inp.name); });
+      $("midiInfo").textContent = names.length
+        ? "Слушаю: " + names.join(", ") + ". Покрутите потенциометр."
+        : "MIDI-устройств не найдено. Подключите плату (после прошивки переподключите кабель).";
+    };
+    access.onstatechange = attach;
+    attach();
+    $("midiBtn").textContent = "Монитор включён";
+    $("midiBtn").disabled = true;
+  } catch (e) {
+    $("midiInfo").textContent = "Нет доступа к MIDI: " + e.message;
+  }
+};
 
 $("catalogUrl").value = catalogUrl();
 showUsbStatus();
