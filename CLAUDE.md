@@ -2,6 +2,8 @@
 
 У пользователя iPad и Android (Pixel 7). Локально ничего не компилирует: всё собирает GitHub Actions (`tools/build.py`), прошивка — из Chrome на Android по USB (WebUSB, `web/index.html`). Отвечай коротко, по-русски.
 
+**Публикация:** пользователь разрешил коммитить и пушить **сразу в `main`**, без pull request. После пуша проверь, что GitHub Actions «Build firmware» прошёл (иначе исправь), и скажи, что через 3–5 минут проект появится на https://djptrvch.github.io/Arduino-Programmator/.
+
 ## Новый проект прошивки
 1. Создай `firmware/<id>/<id>.ino` (имя `.ino` = имя папки, латиница, без пробелов).
 2. Создай `firmware/<id>/project.json`:
