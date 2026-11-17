@@ -436,6 +436,8 @@ async function flashHexText(text, boardId, label, dev) {
   } finally {
     await port.close();
   }
+  ccRows.forEach((row) => row.remove());
+  ccRows.clear();
   log(`Готово: записано и проверено за ${((performance.now() - t0) / 1000).toFixed(1)} с. Плата запущена.`, "ok");
 }
 
@@ -447,6 +449,11 @@ async function run(fn) {
   try { await fn(); }
   catch (e) { log(e.message, "err"); }
   finally { progress(null); buttons.forEach((b) => (b.disabled = false)); updateButtons(); }
+}
+
+// ?v=<коммит> — чтобы кэш GitHub Pages не отдал старую прошивку
+function fileUrl(build) {
+  return catalogUrl() + build.file + "?v=" + (state.manifest?.commit || Date.now());
 }
 
 function selectedBuild() {
@@ -486,7 +493,7 @@ function updateButtons() {
 
 async function loadCatalog() {
   try {
-    const r = await fetch(catalogUrl() + "manifest.json", { cache: "no-store" });
+    const r = await fetch(catalogUrl() + "manifest.json?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     state.manifest = await r.json();
     Object.assign(state.boards, state.manifest.boards || {});
@@ -524,14 +531,14 @@ $("board").onchange = () => { store("board", $("board").value); updateButtons();
 $("flashCatalogBtn").onclick = () => run(async () => {
   const { project, build, boardId } = selectedBuild();
   const dev = await pickDevice();  // сначала USB — пока действует нажатие кнопки
-  const r = await fetch(catalogUrl() + build.file, { cache: "no-store" });
+  const r = await fetch(fileUrl(build), { cache: "no-store" });
   if (!r.ok) throw new Error(`Не удалось скачать прошивку: HTTP ${r.status}`);
   await flashHexText(await r.text(), boardId, project.name, dev);
 });
 
 $("downloadBtn").onclick = () => run(async () => {
   const { project, build, boardId } = selectedBuild();
-  const r = await fetch(catalogUrl() + build.file, { cache: "no-store" });
+  const r = await fetch(fileUrl(build), { cache: "no-store" });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(await r.blob());
