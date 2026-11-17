@@ -365,40 +365,59 @@ async function waitDisconnect(device, ms) {
   }
 }
 
+async function openPort(dev) {
+  const port = new CdcPort(dev);
+  await port.open();
+  return port;
+}
+
+// Загрузчик отвечает не сразу после подключения — пробуем несколько раз.
+async function probeRetry(proto, port, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    if (await proto.probe(port)) return true;
+    await sleep(150);
+  }
+  return false;
+}
+
 async function openBootloader(proto, dev) {
   log("Подключаюсь: " + devName(dev));
-  let port = new CdcPort(dev);
-  await port.open();
-  if (await proto.probe(port)) return port;
+  let port = await openPort(dev);
+  if (await probeRetry(proto, port, 1)) { log("Плата уже в режиме загрузчика"); return port; }
 
-  log("Перезагружаю плату в режим загрузчика…");
-  try { await port.setLine(1200, false); } catch (e) { /* плата уже ушла в перезагрузку */ }
-  await port.close();
-  await waitDisconnect(dev, 1500);
-  await sleep(300);
-
-  // Загрузчик — другое USB-устройство. Если разрешение на него уже есть, подхватываем сами.
-  const t0 = performance.now();
-  while (performance.now() - t0 < 1000) {
-    const found = (await navigator.usb.getDevices()).find((d) => d !== dev);
-    if (found) { dev = found; log("Загрузчик найден: " + devName(dev)); break; }
-    await sleep(100);
-  }
-  if (dev === port.device) {
-    if (!(await askUser("Шаг 2 из 2: загрузчик",
-      "Плата перезагрузилась и ждёт прошивку 8 секунд. Нажмите кнопку ниже и в списке Chrome выберите плату ещё раз.",
-      "Выбрать плату ещё раз")))
-      throw new Error("Отменено");
-    dev = await chooseUsb("Загрузчик не выбран (можно дважды нажать RESET на плате и повторить).");
-    log("Выбрано: " + devName(dev));
-  }
-  port = new CdcPort(dev);
-  await port.open();
-  if (!(await proto.probe(port))) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    log(attempt === 1 ? "Перезагружаю плату в режим загрузчика…" : `Повтор ${attempt}: снова перезагружаю плату…`);
+    const old = port.device;
+    try { await port.setLine(1200, false); } catch (e) { /* плата уже ушла в перезагрузку */ }
     await port.close();
-    throw new Error("Загрузчик не отвечает. Дважды нажмите RESET на плате и сразу «Прошить».");
+    await waitDisconnect(old, 1500);
+    await sleep(300);
+
+    // Загрузчик — другое USB-устройство. Если разрешение на него уже есть, подхватываем сами.
+    let next = null;
+    const t0 = performance.now();
+    while (!next && performance.now() - t0 < 1000) {
+      next = (await navigator.usb.getDevices()).find((d) => d !== old) || null;
+      if (!next) await sleep(100);
+    }
+    if (next) log("Загрузчик найден: " + devName(next));
+    else {
+      if (!(await askUser("Шаг 2 из 2: загрузчик",
+        "Плата перезагрузилась и ждёт прошивку 8 секунд. Сразу нажмите кнопку ниже и в списке Chrome выберите плату ещё раз.",
+        "Выбрать плату ещё раз")))
+        throw new Error("Отменено");
+      next = await chooseUsb("Загрузчик не выбран.");
+      log("Выбрано: " + devName(next));
+    }
+
+    port = await openPort(next);
+    if (await probeRetry(proto, port)) return port;
+    // Не успели за 8 секунд: плата вернулась к своей программе. Перезагружаем ещё раз.
+    log("Загрузчик не ответил — видимо, 8 секунд прошли.");
   }
-  return port;
+  await port.close();
+  throw new Error("Загрузчик так и не ответил. Попробуйте ещё раз: в окне «Шаг 2» выбирайте плату как можно быстрее. " +
+    "Или замкните проводом RST и GND два раза подряд и сразу нажмите «Прошить».");
 }
 
 async function flashHexText(text, boardId, label, dev) {
