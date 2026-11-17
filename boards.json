@@ -1,4 +1,13 @@
 {
+  "promicro": {
+    "name": "Pro Micro (ATmega32U4, 5V/16 МГц)",
+    "fqbn": "arduino:avr:leonardo",
+    "core": "arduino:avr",
+    "method": "avr109",
+    "signature": "1e9587",
+    "pageSize": 128,
+    "flashSize": 28672
+  },
   "leonardo": {
     "name": "Arduino Leonardo (ATmega32U4)",
     "fqbn": "arduino:avr:leonardo",
