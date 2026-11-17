@@ -20,7 +20,7 @@
 - `fqbn`, `core` (ядро для `arduino-cli core install`; для не-arduino/esp32 ядер добавь URL индекса в `tools/build.py`);
 - `method`: протокол прошивки из `PROTOCOLS` в `web/index.html` (сейчас `avr109`) или `download` — только скачивание;
 - для `avr109`: `signature` (3 байта hex), `pageSize` (байт), `flashSize` — размер области программы без загрузчика (32U4: 28672).
-- Новый протокол (STK500v1 для Uno, STK500v2 для Mega, esptool для ESP32) = новый объект в `PROTOCOLS` с методами `probe(port)` и `flash(port, pages, board)`; USB-VID платы добавь в `USB_FILTERS`. Для плат с CH340/CP2102 нужен свой драйвер поверх WebUSB (они не CDC-ACM).
+- Новый протокол (STK500v1 для Uno, STK500v2 для Mega, esptool для ESP32) = новый объект в `PROTOCOLS` с методами `probe(port)` и `flash(port, pages, board)`. Для плат с CH340/CP2102 нужен свой драйвер поверх WebUSB (они не CDC-ACM).
 
 ## Веб-программатор
 - `web/index.html` — один файл без внешних зависимостей. Маркер `/*@BOARDS@*/null` не трогать.
