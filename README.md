@@ -1,6 +1,6 @@
 # Arduino Programmator
 
-Прошивка Arduino **по USB-C прямо из Chrome на Android** (проверялось под Pixel 7). Код пишет ИИ (Claude Code, Codex и др.), прошивки собирает GitHub, программатор — обычная веб-страница.
+Прошивка Arduino **по USB-C прямо из Chrome на Android** (рассчитано на Pixel 7; на реальном устройстве ещё не проверялось). Код пишет ИИ (Claude Code, Codex и др.), прошивки собирает GitHub, программатор — обычная веб-страница.
 
 ```
 iPad / Android ── claude.ai/code ──► GitHub (код)
