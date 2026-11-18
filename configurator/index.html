@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a7cff">
+<title>Настройка контроллера</title>
+<style>
+:root {
+  --bg: #f4f5f7; --card: #fff; --text: #1c1e21; --muted: #6b7280; --line: #e3e5e8;
+  --accent: #0a7cff; --ok: #12a150; --err: #d93025; --track: #e3e5e8; --mono: ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111317; --card: #1b1e24; --text: #e8eaed; --muted: #9aa0a6; --line: #2c3038; --track: #2c3038; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.45 -apple-system, system-ui, Roboto, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 16px 16px 120px; }
+a { color: var(--accent); text-decoration: none; }
+h1 { font-size: 22px; margin: 4px 0; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+.top { font-size: 14px; }
+.sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.desc { font-size: 14px; color: var(--muted); margin-top: 6px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.row > * { flex: 1 1 auto; }
+button { appearance: none; border: 0; border-radius: 10px; padding: 12px 16px; font-size: 16px;
+  font-weight: 600; background: var(--accent); color: #fff; cursor: pointer; }
+button.secondary { background: var(--line); color: var(--text); }
+button:disabled { opacity: .5; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; vertical-align: middle; }
+.pill.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.pill.off { background: var(--line); color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.enc { position: relative; aspect-ratio: 1; border: 2px solid var(--line); border-radius: 14px; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; padding: 4px;
+  transition: background .1s; }
+.enc.sel { border-color: var(--accent); }
+.enc.pressed { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
+.enc .num { position: absolute; top: 4px; left: 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.enc svg { width: 64%; height: auto; }
+.enc .ring-bg { stroke: var(--track); }
+.enc .ring { stroke: var(--accent); transition: stroke-dashoffset .05s; }
+.enc .val { font: 700 28px var(--mono); fill: var(--text); }
+.enc .lbl { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
+.enc.flash .ring { stroke: var(--ok); }
+
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+select, input[type=number] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); font-size: 16px; }
+.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; color: var(--text); }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+h3 { font-size: 15px; margin: 16px 0 0; }
+h3:first-of-type { margin-top: 0; }
+#log { font: 13px/1.5 var(--mono); white-space: pre-wrap; color: var(--muted); margin-top: 10px; min-height: 1.5em; }
+#log .err { color: var(--err); } #log .ok { color: var(--ok); }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); }
+.bar .inner { max-width: 760px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+.bar button { flex: 1; }
+.dirty { font-size: 13px; color: var(--muted); flex: 0 0 auto; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><a href="../">← Программатор</a></div>
+  <h1>Настройка контроллера</h1>
+  <p class="sub">MIDI-контроллер на 16 энкодерах: что отправляет поворот и нажатие каждого энкодера. Настройки сохраняются в самом контроллере.</p>
+
+  <section class="card">
+    <h2>Контроллер <span id="pill" class="pill off">не подключён</span></h2>
+    <div class="desc" id="status">Подключите контроллер по USB и нажмите «Подключить». Работает в Chrome на Android.</div>
+    <div class="row">
+      <button id="connectBtn">Подключить</button>
+      <button class="secondary" id="readBtn" disabled>Прочитать из контроллера</button>
+    </div>
+    <div id="log"></div>
+  </section>
+
+  <section class="card">
+    <h2>Энкодеры</h2>
+    <div class="grid" id="grid"></div>
+    <div class="desc">Нажмите на энкодер, чтобы настроить его. Покрутите энкодер на контроллере — он подсветится здесь.</div>
+  </section>
+
+  <section class="card">
+    <h2 id="editTitle">Энкодер 1</h2>
+    <h3>Поворот</h3>
+    <div class="fields">
+      <div><label for="encMode">Режим</label>
+        <select id="encMode">
+          <option value="0">0–127</option>
+          <option value="1">Относ. 64±</option>
+          <option value="2">Относ. 1/127</option>
+        </select></div>
+      <div><label for="encCh">MIDI-канал</label><select id="encCh"></select></div>
+      <div><label for="encCc">Номер CC</label><input type="number" id="encCc" min="0" max="127" inputmode="numeric"></div>
+      <div><label class="check"><input type="checkbox" id="encAccel"> Ускорение</label></div>
+    </div>
+    <div class="desc">0–127 — значение как у ручки без упоров. «Относ.» — шаги ±1 для программ, которые понимают относительные энкодеры (64± — Binary Offset, 1/127 — Two's Complement).</div>
+    <h3>Нажатие</h3>
+    <div class="fields">
+      <div><label for="btnType">Отправлять</label>
+        <select id="btnType">
+          <option value="0">CC (127 / 0)</option>
+          <option value="1">Ноту</option>
+          <option value="2">Ничего</option>
+        </select></div>
+      <div><label for="btnMode">Режим кнопки</label>
+        <select id="btnMode">
+          <option value="0">Пока нажата</option>
+          <option value="1">Переключатель</option>
+        </select></div>
+      <div><label for="btnCh">MIDI-канал</label><select id="btnCh"></select></div>
+      <div><label for="btnNum" id="btnNumLabel">Номер CC</label><input type="number" id="btnNum" min="0" max="127" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <button class="secondary" id="copyAllBtn">Применить ко всем (номера по порядку)</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Общие настройки</h2>
+    <label for="detent">Тип энкодеров</label>
+    <select id="detent">
+      <option value="4">EC11, 20 щелчков на оборот</option>
+      <option value="2">EC11, 30 щелчков на оборот</option>
+      <option value="1">Без щелчков / каждый шаг</option>
+    </select>
+    <div class="desc">Если энкодер считает через щелчок или по два за щелчок — смените тип.</div>
+    <label class="check"><input type="checkbox" id="reverse"> Инвертировать направление вращения</label>
+  </section>
+
+  <section class="card">
+    <h2>Пресеты</h2>
+    <div class="row">
+      <button class="secondary" id="savePresetBtn">Сохранить в файл</button>
+      <button class="secondary" id="loadPresetBtn">Загрузить из файла</button>
+    </div>
+    <input type="file" id="presetFile" accept=".json,application/json" class="hidden">
+    <div class="row">
+      <button class="secondary" id="defaultsBtn">Настройки по умолчанию</button>
+    </div>
+  </section>
+</main>
+
+<div class="bar">
+  <div class="inner">
+    <span class="dirty" id="dirty">Сохранено</span>
+    <button id="writeBtn" disabled>Записать в контроллер</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const NUM_ENC = 16;
+const SYSEX = [0x7d, 0x4d];  // ID производителя (некоммерческий) и устройства
+const ENC_FIELDS = ["channel", "cc", "mode", "accel", "btnType", "btnChannel", "btnNumber", "btnMode"];
+
+const $ = (id) => document.getElementById(id);
+
+const st = {
+  access: null, input: null, output: null,
+  cfg: defaults(), values: new Array(NUM_ENC).fill(0),
+  sel: 0, dirty: false, pending: new Map(),
+};
+
+function defaults() {
+  return {
+    detentSteps: 4, reverse: 0,
+    enc: Array.from({ length: NUM_ENC }, (_, i) => ({
+      channel: 0, cc: i, mode: 0, accel: 1, btnType: 0, btnChannel: 1, btnNumber: i, btnMode: 0,
+    })),
+  };
+}
+
+function log(msg, cls) {
+  const el = $("log");
+  el.innerHTML = "";
+  const s = document.createElement("span");
+  if (cls) s.className = cls;
+  s.textContent = msg;
+  el.appendChild(s);
+}
+
+// ---------- кодирование настроек (тот же порядок байт, что в прошивке)
+
+function cfgToBytes(c) {
+  const out = [c.detentSteps, c.reverse];
+  for (const e of c.enc) for (const f of ENC_FIELDS) out.push(e[f]);
+  return out;
+}
+
+function bytesToCfg(b) {
+  const c = { detentSteps: b[0], reverse: b[1], enc: [] };
+  for (let i = 0; i < NUM_ENC; i++) {
+    const e = {};
+    ENC_FIELDS.forEach((f, k) => (e[f] = b[2 + i * 8 + k]));
+    c.enc.push(e);
+  }
+  return c;
+}
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v | 0));
+
+function sanitize(c) {
+  const d = defaults();
+  const out = { detentSteps: [1, 2, 4].includes(c?.detentSteps) ? c.detentSteps : 4, reverse: c?.reverse ? 1 : 0, enc: [] };
+  for (let i = 0; i < NUM_ENC; i++) {
+    const e = c?.enc?.[i] || d.enc[i];
+    out.enc.push({
+      channel: clamp(e.channel, 0, 15), cc: clamp(e.cc, 0, 127), mode: clamp(e.mode, 0, 2), accel: e.accel ? 1 : 0,
+      btnType: clamp(e.btnType, 0, 2), btnChannel: clamp(e.btnChannel, 0, 15), btnNumber: clamp(e.btnNumber, 0, 127),
+      btnMode: clamp(e.btnMode, 0, 1),
+    });
+  }
+  return out;
+}
+
+// ---------- SysEx
+
+function sendSysex(output, cmd, data = []) {
+  output.send([0xf0, ...SYSEX, cmd, ...data, 0xf7]);
+}
+
+function request(cmd, data, replyCmd, timeout = 1500, output = st.output) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => { st.pending.delete(replyCmd); reject(new Error("Контроллер не ответил")); }, timeout);
+    st.pending.set(replyCmd, (payload, input) => { clearTimeout(t); st.pending.delete(replyCmd); resolve({ payload, input }); });
+    sendSysex(output, cmd, data);
+  });
+}
+
+function onMessage(e) {
+  const d = e.data;
+  if (d[0] === 0xf0) {
+    if (d[1] !== SYSEX[0] || d[2] !== SYSEX[1]) return;
+    const cb = st.pending.get(d[3]);
+    if (cb) cb([...d.slice(4, d.length - 1)], e.target);
+    return;
+  }
+  if (e.target !== st.input) return;
+  const type = d[0] & 0xf0, ch = d[0] & 0x0f;
+  st.cfg.enc.forEach((enc, i) => {
+    if (type === 0xb0 && enc.channel === ch && enc.cc === d[1]) {
+      if (enc.mode === 0) setValue(i, d[2]);
+      flash(i);
+    }
+    if (enc.btnType === 2 || enc.btnChannel !== ch) return;
+    if (enc.btnType === 0 && type === 0xb0 && enc.btnNumber === d[1]) setPressed(i, d[2] > 0);
+    if (enc.btnType === 1 && (type === 0x90 || type === 0x80) && enc.btnNumber === d[1])
+      setPressed(i, type === 0x90 && d[2] > 0);
+  });
+}
+
+// ---------- подключение
+
+async function connect() {
+  if (!navigator.requestMIDIAccess) {
+    log("Этот браузер не поддерживает Web MIDI. Откройте страницу в Chrome на Android.", "err");
+    return;
+  }
+  try {
+    st.access = st.access || (await navigator.requestMIDIAccess({ sysex: true }));
+  } catch (e) {
+    log("Нет доступа к MIDI: " + e.message + ". Разрешите доступ к MIDI-устройствам для этого сайта.", "err");
+    return;
+  }
+  st.access.inputs.forEach((inp) => (inp.onmidimessage = onMessage));
+  st.access.onstatechange = (ev) => {
+    if (ev.port.type === "input" && ev.port.state === "connected") ev.port.onmidimessage = onMessage;
+    if (st.output && ev.port === st.output && ev.port.state === "disconnected") setConnected(null);
+  };
+  log("Ищу контроллер…");
+  for (const out of st.access.outputs.values()) {
+    try {
+      const { payload, input } = await request(0x01, [], 0x02, 600, out);
+      st.output = out;
+      st.input = input;
+      st.info = { version: payload[0], encoders: payload[1], cfgSize: (payload[2] << 7) | payload[3] };
+      setConnected(out.name);
+      await readAll();
+      return;
+    } catch (e) { /* это не наш контроллер */ }
+  }
+  setConnected(null);
+  log("Контроллер не найден. Он прошит прошивкой «MIDI-контроллер: 16 энкодеров»? Переподключите кабель и попробуйте ещё раз.", "err");
+}
+
+function setConnected(name) {
+  if (!name) { st.output = st.input = null; }
+  $("pill").className = "pill " + (name ? "ok" : "off");
+  $("pill").textContent = name ? "подключён" : "не подключён";
+  $("status").textContent = name
+    ? `${name}, прошивка v${st.info.version}`
+    : "Подключите контроллер по USB и нажмите «Подключить». Работает в Chrome на Android.";
+  $("readBtn").disabled = !name;
+  updateDirty();
+}
+
+async function readAll() {
+  try {
+    const { payload } = await request(0x03, [], 0x04);
+    st.cfg = sanitize(bytesToCfg(payload));
+    const v = await request(0x08, [], 0x09);
+    v.payload.forEach((x, i) => (st.values[i] = x));
+    st.dirty = false;
+    renderAll();
+    log("Настройки прочитаны из контроллера", "ok");
+  } catch (e) {
+    log(e.message, "err");
+  }
+}
+
+async function writeAll() {
+  try {
+    const { payload } = await request(0x05, cfgToBytes(st.cfg), 0x06, 3000);
+    if (payload[0] !== 0) throw new Error("Контроллер отклонил настройки");
+    st.dirty = false;
+    updateDirty();
+    log("Записано в контроллер", "ok");
+  } catch (e) {
+    log(e.message, "err");
+  }
+}
+
+// ---------- отрисовка
+
+const ARC = 2 * Math.PI * 40 * 0.75;  // 270° дуга, радиус 40
+
+function buildGrid() {
+  const grid = $("grid");
+  for (let i = 0; i < NUM_ENC; i++) {
+    const el = document.createElement("div");
+    el.className = "enc";
+    el.innerHTML = `<span class="num">${i + 1}</span>
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="40" fill="none" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="${ARC} 999" transform="rotate(135 50 50)"/>
+        <circle class="ring" cx="50" cy="50" r="40" fill="none" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="${ARC} 999" stroke-dashoffset="${ARC}" transform="rotate(135 50 50)"/>
+        <text class="val" x="50" y="60" text-anchor="middle">0</text>
+      </svg>
+      <span class="lbl"></span>`;
+    el.onclick = () => select(i);
+    grid.appendChild(el);
+  }
+}
+
+function tile(i) { return $("grid").children[i]; }
+
+function setValue(i, v) {
+  st.values[i] = v;
+  const el = tile(i);
+  el.querySelector(".ring").setAttribute("stroke-dashoffset", ARC * (1 - v / 127));
+  el.querySelector(".val").textContent = st.cfg.enc[i].mode === 0 ? v : "±";
+}
+
+function flash(i) {
+  const el = tile(i);
+  el.classList.add("flash");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("flash"), 150);
+}
+
+function setPressed(i, on) { tile(i).classList.toggle("pressed", on); }
+
+function renderTile(i) {
+  const e = st.cfg.enc[i];
+  tile(i).querySelector(".lbl").textContent = `CC${e.cc} · к${e.channel + 1}`;
+  setValue(i, e.mode === 0 ? st.values[i] : 127);
+}
+
+function fillChannels(sel) {
+  for (let c = 0; c < 16; c++) {
+    const o = document.createElement("option");
+    o.value = c;
+    o.textContent = c + 1;
+    sel.appendChild(o);
+  }
+}
+
+function renderEditor() {
+  const e = st.cfg.enc[st.sel];
+  $("editTitle").textContent = `Энкодер ${st.sel + 1}`;
+  $("encMode").value = e.mode;
+  $("encCh").value = e.channel;
+  $("encCc").value = e.cc;
+  $("encAccel").checked = !!e.accel;
+  $("btnType").value = e.btnType;
+  $("btnMode").value = e.btnMode;
+  $("btnCh").value = e.btnChannel;
+  $("btnNum").value = e.btnNumber;
+  $("btnNumLabel").textContent = e.btnType === 1 ? "Нота (60 = C4)" : "Номер CC";
+  const off = e.btnType === 2;
+  ["btnMode", "btnCh", "btnNum"].forEach((id) => ($(id).disabled = off));
+  [...$("grid").children].forEach((el, i) => el.classList.toggle("sel", i === st.sel));
+}
+
+function renderAll() {
+  for (let i = 0; i < NUM_ENC; i++) renderTile(i);
+  renderEditor();
+  $("detent").value = st.cfg.detentSteps;
+  $("reverse").checked = !!st.cfg.reverse;
+  updateDirty();
+}
+
+function updateDirty() {
+  $("dirty").textContent = st.dirty ? "Есть изменения" : "Сохранено";
+  $("writeBtn").disabled = !st.output || !st.dirty;
+}
+
+function changed() {
+  st.dirty = true;
+  renderTile(st.sel);
+  renderEditor();
+  updateDirty();
+}
+
+function select(i) {
+  st.sel = i;
+  renderEditor();
+}
+
+// ---------- обработчики
+
+fillChannels($("encCh"));
+fillChannels($("btnCh"));
+buildGrid();
+
+const num = (id, lo, hi) => clamp(parseInt($(id).value, 10) || 0, lo, hi);
+$("encMode").onchange = () => { st.cfg.enc[st.sel].mode = +$("encMode").value; changed(); };
+$("encCh").onchange = () => { st.cfg.enc[st.sel].channel = +$("encCh").value; changed(); };
+$("encCc").onchange = () => { st.cfg.enc[st.sel].cc = num("encCc", 0, 127); changed(); };
+$("encAccel").onchange = () => { st.cfg.enc[st.sel].accel = $("encAccel").checked ? 1 : 0; changed(); };
+$("btnType").onchange = () => { st.cfg.enc[st.sel].btnType = +$("btnType").value; changed(); };
+$("btnMode").onchange = () => { st.cfg.enc[st.sel].btnMode = +$("btnMode").value; changed(); };
+$("btnCh").onchange = () => { st.cfg.enc[st.sel].btnChannel = +$("btnCh").value; changed(); };
+$("btnNum").onchange = () => { st.cfg.enc[st.sel].btnNumber = num("btnNum", 0, 127); changed(); };
+$("detent").onchange = () => { st.cfg.detentSteps = +$("detent").value; st.dirty = true; updateDirty(); };
+$("reverse").onchange = () => { st.cfg.reverse = $("reverse").checked ? 1 : 0; st.dirty = true; updateDirty(); };
+
+$("copyAllBtn").onclick = () => {
+  const src = st.cfg.enc[st.sel];
+  st.cfg.enc = st.cfg.enc.map((_, j) => ({
+    ...src,
+    cc: clamp(src.cc + j - st.sel, 0, 127),
+    btnNumber: clamp(src.btnNumber + j - st.sel, 0, 127),
+  }));
+  st.dirty = true;
+  renderAll();
+  log("Настройки энкодера " + (st.sel + 1) + " применены ко всем, номера по порядку");
+};
+
+$("connectBtn").onclick = connect;
+$("readBtn").onclick = readAll;
+$("writeBtn").onclick = writeAll;
+
+$("defaultsBtn").onclick = () => {
+  st.cfg = defaults();
+  st.dirty = true;
+  renderAll();
+  log("Настройки по умолчанию. Нажмите «Записать в контроллер», чтобы применить.");
+};
+
+$("savePresetBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify({ format: "encoders16", version: 1, ...st.cfg }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "preset-encoders16.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+
+$("loadPresetBtn").onclick = () => $("presetFile").click();
+$("presetFile").onchange = async () => {
+  const f = $("presetFile").files[0];
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.format !== "encoders16") throw new Error("Это не пресет этого контроллера");
+    st.cfg = sanitize(data);
+    st.dirty = true;
+    renderAll();
+    log(`Пресет «${f.name}» загружен. Нажмите «Записать в контроллер».`, "ok");
+  } catch (e) {
+    log("Не удалось загрузить пресет: " + e.message, "err");
+  }
+  $("presetFile").value = "";
+};
+
+renderAll();
+</script>
+</body>
+</html>

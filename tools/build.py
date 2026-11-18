@@ -109,6 +109,8 @@ def main():
         json.dump(manifest, f, ensure_ascii=False, indent=2)
     with open(os.path.join(DIST, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
+    os.makedirs(os.path.join(DIST, "configurator"))
+    shutil.copy(os.path.join(ROOT, "configurator", "index.html"), os.path.join(DIST, "configurator", "index.html"))
     open(os.path.join(DIST, ".nojekyll"), "w").close()
 
     if failed:

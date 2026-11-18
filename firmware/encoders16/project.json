@@ -1,0 +1,6 @@
+{
+  "name": "MIDI-контроллер: 16 энкодеров EC11",
+  "description": "16 энкодеров с кнопкой через 3 мультиплексора CD74HC4067. S0–S3 всех мультиплексоров → 2, 3, 4, 5; EN → GND. SIG: выводы A → 6, выводы B → 7, кнопки → 8. Энкодер N → входы C(N−1). Средний вывод энкодера и вторая ножка кнопки → GND. Настройки меняются в конфигураторе: https://djptrvch.github.io/Arduino-Programmator/configurator/",
+  "boards": ["promicro", "leonardo", "micro"],
+  "libraries": ["MIDIUSB"]
+}

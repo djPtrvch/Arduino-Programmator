@@ -26,5 +26,10 @@
 - `web/index.html` — один файл без внешних зависимостей. Маркер `/*@BOARDS@*/null` не трогать.
 - Работает только по HTTPS (GitHub Pages) в Chrome на Android/компьютере; в Safari WebUSB нет.
 
+## Конфигуратор контроллера
+- `configurator/index.html` → https://djptrvch.github.io/Arduino-Programmator/configurator/ — отдельная страница (Web MIDI + SysEx), настраивает прошивку `firmware/encoders16` без перепрошивки.
+- Протокол: `F0 7D 4D <cmd> … F7`, команды описаны в начале раздела SysEx в `encoders16.ino`. Порядок байт настроек одинаков в прошивке (`struct Config`) и конфигураторе (`ENC_FIELDS`) — менять синхронно, при изменении формата поднять версию в EEPROM.
+- Не упоминать сторонние коммерческие контроллеры в коде и текстах.
+
 ## Проверка
 Локально (если есть arduino-cli): `python3 tools/build.py`. Иначе смотри результат GitHub Actions.
