@@ -113,12 +113,13 @@ h3:first-of-type { margin-top: 0; }
         </select></div>
       <div><label for="btnMode">Режим кнопки</label>
         <select id="btnMode">
-          <option value="0">Пока нажата</option>
+          <option value="0">Моментальный</option>
           <option value="1">Переключатель</option>
         </select></div>
       <div><label for="btnCh">MIDI-канал</label><select id="btnCh"></select></div>
       <div><label for="btnNum" id="btnNumLabel">Номер CC</label><input type="number" id="btnNum" min="0" max="127" inputmode="numeric"></div>
     </div>
+    <div class="desc">Моментальный — «вкл» при нажатии, «выкл» при отпускании. Переключатель — каждое нажатие меняет вкл/выкл.</div>
     <div class="row">
       <button class="secondary" id="copyAllBtn">Применить ко всем (номера по порядку)</button>
     </div>
