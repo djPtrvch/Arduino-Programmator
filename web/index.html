@@ -40,6 +40,8 @@ progress { width: 100%; height: 8px; margin-bottom: 10px; accent-color: var(--ac
   overflow: auto; background: var(--bg); border-radius: 10px; padding: 10px; margin: 0; min-height: 40px; }
 .ok { color: var(--ok); } .err { color: var(--err); }
 .hidden { display: none !important; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+button.lang { padding: 6px 12px; font-size: 14px; }
 details summary { cursor: pointer; font-weight: 600; }
 .cc { display: grid; grid-template-columns: 76px 1fr 36px; gap: 10px; align-items: center; margin-top: 8px;
   font: 14px var(--mono); }
@@ -56,60 +58,60 @@ details summary { cursor: pointer; font-weight: 600; }
 </head>
 <body>
 <main>
-  <h1>Arduino Programmator</h1>
-  <p class="sub">Прошивка Arduino по USB прямо из Chrome на Android. <a href="configurator/" style="color:var(--accent)">Настройка контроллера →</a></p>
+  <div class="head"><h1>Arduino Programmator</h1><button class="secondary lang" id="langBtn">EN</button></div>
+  <p class="sub"><span data-en="Flash Arduino over USB right from Chrome on Android.">Прошивка Arduino по USB прямо из Chrome на Android.</span> <a href="configurator/" style="color:var(--accent)" data-en="Controller settings →">Настройка контроллера →</a></p>
 
   <section class="card">
     <h2>USB <span id="usbPill" class="pill off">…</span></h2>
     <div class="desc" id="usbInfo"></div>
-    <div class="row"><button class="secondary" id="usbTestBtn">Проверить USB</button></div>
+    <div class="row"><button class="secondary" id="usbTestBtn" data-en="Test USB">Проверить USB</button></div>
   </section>
 
   <section class="card">
-    <h2>Прошивка из каталога</h2>
-    <label for="project">Проект</label>
+    <h2 data-en="Flash from catalog">Прошивка из каталога</h2>
+    <label for="project" data-en="Project">Проект</label>
     <select id="project"></select>
     <div class="desc" id="projectDesc"></div>
-    <label for="board">Плата</label>
+    <label for="board" data-en="Board">Плата</label>
     <select id="board"></select>
     <div class="row">
-      <button id="flashCatalogBtn">Прошить</button>
-      <button class="secondary" id="downloadBtn">Скачать файл</button>
+      <button id="flashCatalogBtn" data-en="Flash">Прошить</button>
+      <button class="secondary" id="downloadBtn" data-en="Download file">Скачать файл</button>
     </div>
     <div class="desc" id="catalogInfo"></div>
   </section>
 
   <section class="card">
-    <h2>Прошивка из файла (.hex)</h2>
-    <label for="fileBoard">Плата</label>
+    <h2 data-en="Flash from file (.hex)">Прошивка из файла (.hex)</h2>
+    <label for="fileBoard" data-en="Board">Плата</label>
     <select id="fileBoard"></select>
-    <label for="file">Файл</label>
+    <label for="file" data-en="File">Файл</label>
     <input type="file" id="file" accept=".hex,.ihex,text/plain">
     <div class="row">
-      <button id="flashFileBtn">Прошить файл</button>
+      <button id="flashFileBtn" data-en="Flash file">Прошить файл</button>
     </div>
   </section>
 
   <section class="card">
-    <h2>Журнал</h2>
+    <h2 data-en="Log">Журнал</h2>
     <progress id="progress" value="0" max="1" class="hidden"></progress>
     <pre id="log"></pre>
   </section>
 
   <section class="card">
-    <h2>MIDI-монитор</h2>
-    <div class="desc" id="midiInfo">Показывает, что присылает MIDI-контроллер. Сначала прошейте плату, потом включите монитор.</div>
-    <div class="row"><button class="secondary" id="midiBtn">Включить</button></div>
+    <h2 data-en="MIDI monitor">MIDI-монитор</h2>
+    <div class="desc" id="midiInfo" data-en="Shows what the MIDI controller sends. Flash the board first, then turn the monitor on.">Показывает, что присылает MIDI-контроллер. Сначала прошейте плату, потом включите монитор.</div>
+    <div class="row"><button class="secondary" id="midiBtn" data-en="Turn on">Включить</button></div>
     <div id="midiCcs"></div>
     <pre id="midiLog" class="hidden"></pre>
   </section>
 
   <section class="card">
     <details>
-      <summary>Настройки</summary>
-      <label for="catalogUrl">Адрес каталога прошивок</label>
+      <summary data-en="Settings">Настройки</summary>
+      <label for="catalogUrl" data-en="Firmware catalog URL">Адрес каталога прошивок</label>
       <input type="url" id="catalogUrl">
-      <div class="row"><button class="secondary" id="saveCatalogBtn">Сохранить и обновить</button></div>
+      <div class="row"><button class="secondary" id="saveCatalogBtn" data-en="Save and reload">Сохранить и обновить</button></div>
     </details>
   </section>
 </main>
@@ -119,7 +121,7 @@ details summary { cursor: pointer; font-weight: 600; }
     <h2 id="promptTitle"></h2>
     <p class="desc" id="promptText"></p>
     <button id="promptBtn"></button>
-    <div class="row"><button class="secondary" id="promptCancel">Отмена</button></div>
+    <div class="row"><button class="secondary" id="promptCancel" data-en="Cancel">Отмена</button></div>
   </div>
 </div>
 
@@ -129,6 +131,30 @@ details summary { cursor: pointer; font-weight: 600; }
 const BOARDS = /*@BOARDS@*/null;
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- язык интерфейса (RU / EN)
+let lang = "ru";
+try { lang = localStorage.getItem("lang") || (navigator.language.startsWith("ru") ? "ru" : "en"); } catch (e) { /* без хранилища */ }
+const L = (ru, en) => (lang === "en" ? en : ru);
+const pname = (x) => L(x.name, x.name_en || x.name);
+const pdesc = (x) => L(x.description || "", x.description_en || x.description || "");
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-en]").forEach((el) => {
+    if (el.dataset.ru === undefined) el.dataset.ru = el.textContent;
+    el.textContent = lang === "en" ? el.dataset.en : el.dataset.ru;
+  });
+  $("langBtn").textContent = lang === "en" ? "RU" : "EN";
+}
+
+$("langBtn").onclick = () => {
+  lang = lang === "en" ? "ru" : "en";
+  try { localStorage.setItem("lang", lang); } catch (e) { /* без хранилища */ }
+  location.reload();
+};
+applyLang();
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const state = { manifest: null, boards: BOARDS || {} };
 const hasUsb = "usb" in navigator;
@@ -179,10 +205,10 @@ function parseHex(text) {
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
-    if (line[0] !== ":") throw new Error("Не похоже на Intel HEX");
+    if (line[0] !== ":") throw new Error(L("Не похоже на Intel HEX", "Not an Intel HEX file"));
     const bytes = line.slice(1).match(/../g).map((h) => parseInt(h, 16));
     const sum = bytes.reduce((a, b) => a + b, 0) & 0xff;
-    if (sum !== 0) throw new Error("Ошибка контрольной суммы в строке: " + line);
+    if (sum !== 0) throw new Error(L("Ошибка контрольной суммы в строке: ", "Checksum error in line: ") + line);
     const [len, ah, al, type] = bytes;
     const data = bytes.slice(4, 4 + len);
     if (type === 0) {
@@ -201,7 +227,7 @@ function toPages(mem, board) {
   const pages = new Map();
   for (const [addr, b] of mem) {
     if (addr >= board.flashSize)
-      throw new Error(`Прошивка не помещается: ${board.name} — максимум ${board.flashSize} байт`);
+      throw new Error(L(`Прошивка не помещается: ${board.name} — максимум ${board.flashSize} байт`, `Firmware too large: ${board.name} allows at most ${board.flashSize} bytes`));
     const pa = addr - (addr % ps);
     if (!pages.has(pa)) pages.set(pa, new Uint8Array(ps).fill(0xff));
     pages.get(pa)[addr - pa] = b;
@@ -224,7 +250,7 @@ class CdcPort {
     const ifaces = d.configuration.interfaces;
     const comm = ifaces.find((i) => i.alternates[0].interfaceClass === 0x02);
     const data = ifaces.find((i) => i.alternates[0].interfaceClass === 0x0a);
-    if (!data) throw new Error("Устройство не похоже на последовательный порт Arduino");
+    if (!data) throw new Error(L("Устройство не похоже на последовательный порт Arduino", "Device does not look like an Arduino serial port"));
     this.commIf = comm ? comm.interfaceNumber : data.interfaceNumber;
     if (comm) await d.claimInterface(comm.interfaceNumber);
     await d.claimInterface(data.interfaceNumber);
@@ -264,8 +290,8 @@ class CdcPort {
   async read(n, timeout = 1000) {
     const until = performance.now() + timeout;
     while (this.buf.length < n) {
-      if (this.closed) throw new Error("Устройство отключилось");
-      if (performance.now() > until) throw new Error(`Нет ответа от платы (тайм-аут ${timeout} мс)`);
+      if (this.closed) throw new Error(L("Устройство отключилось", "Device disconnected"));
+      if (performance.now() > until) throw new Error(L(`Нет ответа от платы (тайм-аут ${timeout} мс)`, `No response from the board (timeout ${timeout} ms)`));
       await sleep(2);
     }
     return this.buf.splice(0, n);
@@ -290,15 +316,15 @@ const AVR109 = {
   async cmd(port, bytes, timeout) {
     await port.write(bytes);
     const [r] = await port.read(1, timeout);
-    if (r !== 0x0d) throw new Error(`Загрузчик ответил 0x${r.toString(16)} вместо подтверждения`);
+    if (r !== 0x0d) throw new Error(L(`Загрузчик ответил 0x${r.toString(16)} вместо подтверждения`, `Bootloader replied 0x${r.toString(16)} instead of acknowledge`));
   },
 
   async flash(port, pages, board) {
     await port.write([0x73]); // 's' — сигнатура (младший байт первым)
     const sig = (await port.read(3)).reverse().map((b) => b.toString(16).padStart(2, "0")).join("");
     if (board.signature && sig !== board.signature)
-      throw new Error(`Чип ${sig}, а выбранная плата ожидает ${board.signature}`);
-    log(`Чип найден, сигнатура ${sig}`);
+      throw new Error(L(`Чип ${sig}, а выбранная плата ожидает ${board.signature}`, `Chip is ${sig}, but the selected board expects ${board.signature}`));
+    log(L(`Чип найден, сигнатура ${sig}`, `Chip found, signature ${sig}`));
 
     await this.cmd(port, [0x50]);             // 'P' — вход в режим программирования
     await this.cmd(port, [0x65], 10000);      // 'e' — стирание
@@ -317,7 +343,7 @@ const AVR109 = {
       await port.write([0x67, ps >> 8, ps & 0xff, 0x46]); // 'g' .. 'F' — чтение
       const back = await port.read(ps);
       const bad = back.findIndex((b, i) => b !== p.data[i]);
-      if (bad >= 0) throw new Error(`Проверка не прошла по адресу 0x${(p.addr + bad).toString(16)}`);
+      if (bad >= 0) throw new Error(L(`Проверка не прошла по адресу 0x${(p.addr + bad).toString(16)}`, `Verification failed at address 0x${(p.addr + bad).toString(16)}`));
       progress(++done / total);
     }
     await this.cmd(port, [0x4c]); // 'L' — выход из режима программирования
@@ -332,7 +358,7 @@ const PROTOCOLS = { avr109: AVR109 };
 
 function devName(d) {
   const id = (n) => n.toString(16).padStart(4, "0");
-  return `${d.productName || "USB-устройство"} (${id(d.vendorId)}:${id(d.productId)})`;
+  return `${d.productName || L("USB-устройство", "USB device")} (${id(d.vendorId)}:${id(d.productId)})`;
 }
 
 // Открывает системный список USB-устройств Chrome. Должно вызываться сразу из нажатия кнопки.
@@ -343,8 +369,10 @@ async function chooseUsb(hint) {
   } catch (e) {
     log(`Chrome: ${e.name}: ${e.message}`);
     if (e.name === "NotFoundError")
-      throw new Error(`${hint} В окне Chrome нужно нажать на устройство, затем «Подключить». ` +
-        "Если список пустой — плата не видна телефону: проверьте кабель (нужен кабель с передачей данных) и переподключите его.");
+      throw new Error(`${hint} ` + L("В окне Chrome нужно нажать на устройство, затем «Подключить». " +
+        "Если список пустой — плата не видна телефону: проверьте кабель (нужен кабель с передачей данных) и переподключите его.",
+        "In the Chrome dialog tap the device, then “Connect”. " +
+        "If the list is empty, the phone does not see the board: check the cable (it must carry data) and reconnect it."));
     throw new Error(`USB: ${e.name}: ${e.message}`);
   }
 }
@@ -352,9 +380,9 @@ async function chooseUsb(hint) {
 // Устройство для прошивки: уже разрешённое или выбранное в списке.
 async function pickDevice() {
   const known = await navigator.usb.getDevices();
-  log(`Разрешённых USB-устройств: ${known.length}${known.length ? " — " + known.map(devName).join(", ") : ""}`);
+  log(`${L("Разрешённых USB-устройств", "Permitted USB devices")}: ${known.length}${known.length ? " — " + known.map(devName).join(", ") : ""}`);
   if (known.length === 1) return known[0];
-  return chooseUsb("Плата не выбрана.");
+  return chooseUsb(L("Плата не выбрана.", "No board selected."));
 }
 
 async function waitDisconnect(device, ms) {
@@ -381,12 +409,12 @@ async function probeRetry(proto, port, tries = 3) {
 }
 
 async function openBootloader(proto, dev) {
-  log("Подключаюсь: " + devName(dev));
+  log(L("Подключаюсь: ", "Connecting: ") + devName(dev));
   let port = await openPort(dev);
-  if (await probeRetry(proto, port, 1)) { log("Плата уже в режиме загрузчика"); return port; }
+  if (await probeRetry(proto, port, 1)) { log(L("Плата уже в режиме загрузчика", "Board is already in bootloader mode")); return port; }
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    log(attempt === 1 ? "Перезагружаю плату в режим загрузчика…" : `Повтор ${attempt}: снова перезагружаю плату…`);
+    log(attempt === 1 ? L("Перезагружаю плату в режим загрузчика…", "Resetting the board into bootloader…") : L(`Повтор ${attempt}: снова перезагружаю плату…`, `Retry ${attempt}: resetting the board again…`));
     const old = port.device;
     try { await port.setLine(1200, false); } catch (e) { /* плата уже ушла в перезагрузку */ }
     await port.close();
@@ -400,34 +428,37 @@ async function openBootloader(proto, dev) {
       next = (await navigator.usb.getDevices()).find((d) => d !== old) || null;
       if (!next) await sleep(100);
     }
-    if (next) log("Загрузчик найден: " + devName(next));
+    if (next) log(L("Загрузчик найден: ", "Bootloader found: ") + devName(next));
     else {
-      if (!(await askUser("Шаг 2 из 2: загрузчик",
-        "Плата перезагрузилась и ждёт прошивку 8 секунд. Сразу нажмите кнопку ниже и в списке Chrome выберите плату ещё раз.",
-        "Выбрать плату ещё раз")))
-        throw new Error("Отменено");
-      next = await chooseUsb("Загрузчик не выбран.");
-      log("Выбрано: " + devName(next));
+      if (!(await askUser(L("Шаг 2 из 2: загрузчик", "Step 2 of 2: bootloader"),
+        L("Плата перезагрузилась и ждёт прошивку 8 секунд. Сразу нажмите кнопку ниже и в списке Chrome выберите плату ещё раз.",
+          "The board has restarted and waits for firmware for 8 seconds. Tap the button below right away and select the board in the Chrome list again."),
+        L("Выбрать плату ещё раз", "Select the board again"))))
+        throw new Error(L("Отменено", "Cancelled"));
+      next = await chooseUsb(L("Загрузчик не выбран.", "Bootloader not selected."));
+      log(L("Выбрано: ", "Selected: ") + devName(next));
     }
 
     port = await openPort(next);
     if (await probeRetry(proto, port)) return port;
     // Не успели за 8 секунд: плата вернулась к своей программе. Перезагружаем ещё раз.
-    log("Загрузчик не ответил — видимо, 8 секунд прошли.");
+    log(L("Загрузчик не ответил — видимо, 8 секунд прошли.", "Bootloader did not respond — the 8 seconds probably ran out."));
   }
   await port.close();
-  throw new Error("Загрузчик так и не ответил. Попробуйте ещё раз: в окне «Шаг 2» выбирайте плату как можно быстрее. " +
-    "Или замкните проводом RST и GND два раза подряд и сразу нажмите «Прошить».");
+  throw new Error(L("Загрузчик так и не ответил. Попробуйте ещё раз: в окне «Шаг 2» выбирайте плату как можно быстрее. " +
+    "Или замкните проводом RST и GND два раза подряд и сразу нажмите «Прошить».",
+    "The bootloader never responded. Try again and select the board in “Step 2” as fast as possible. " +
+    "Or short RST to GND twice with a wire and tap “Flash” right away."));
 }
 
 async function flashHexText(text, boardId, label, dev) {
   const board = state.boards[boardId];
-  if (!board) throw new Error("Неизвестная плата: " + boardId);
+  if (!board) throw new Error(L("Неизвестная плата: ", "Unknown board: ") + boardId);
   const proto = PROTOCOLS[board.method];
-  if (!proto) throw new Error(`«${board.name}» пока нельзя прошить из браузера (метод: ${board.method}). Скачайте файл.`);
-  if (!hasUsb) throw new Error("Браузер не поддерживает WebUSB. Откройте страницу в Chrome на Android.");
+  if (!proto) throw new Error(L(`«${board.name}» пока нельзя прошить из браузера (метод: ${board.method}). Скачайте файл.`, `“${board.name}” cannot be flashed from the browser yet (method: ${board.method}). Download the file.`));
+  if (!hasUsb) throw new Error(L("Браузер не поддерживает WebUSB. Откройте страницу в Chrome на Android.", "This browser does not support WebUSB. Open the page in Chrome on Android."));
   const pages = toPages(parseHex(text), board);
-  log(`${label}: ${pages.length} стр. по ${board.pageSize} байт → ${board.name}`);
+  log(L(`${label}: ${pages.length} стр. по ${board.pageSize} байт → ${board.name}`, `${label}: ${pages.length} pages of ${board.pageSize} bytes → ${board.name}`));
   const port = await openBootloader(proto, dev);
   const t0 = performance.now();
   progress(0);
@@ -438,7 +469,7 @@ async function flashHexText(text, boardId, label, dev) {
   }
   ccRows.forEach((row) => row.remove());
   ccRows.clear();
-  log(`Готово: записано и проверено за ${((performance.now() - t0) / 1000).toFixed(1)} с. Плата запущена.`, "ok");
+  log(L(`Готово: записано и проверено за ${((performance.now() - t0) / 1000).toFixed(1)} с. Плата запущена.`, `Done: written and verified in ${((performance.now() - t0) / 1000).toFixed(1)} s. Board is running.`), "ok");
 }
 
 // ---------- UI
@@ -468,7 +499,7 @@ function fillBoards(select, ids) {
   for (const id of ids) {
     const o = document.createElement("option");
     o.value = id;
-    o.textContent = state.boards[id]?.name || id;
+    o.textContent = state.boards[id] ? pname(state.boards[id]) : id;
     select.appendChild(o);
   }
   const saved = store("board");
@@ -478,7 +509,7 @@ function fillBoards(select, ids) {
 
 function renderProject() {
   const p = state.manifest?.projects.find((x) => x.id === $("project").value);
-  $("projectDesc").textContent = p?.description || "";
+  $("projectDesc").textContent = p ? pdesc(p) : "";
   fillBoards($("board"), p ? Object.keys(p.builds) : []);
   updateButtons();
 }
@@ -502,16 +533,16 @@ async function loadCatalog() {
     for (const p of state.manifest.projects) {
       const o = document.createElement("option");
       o.value = p.id;
-      o.textContent = p.name;
+      o.textContent = pname(p);
       sel.appendChild(o);
     }
     const saved = store("project");
     if (state.manifest.projects.some((p) => p.id === saved)) sel.value = saved;
     const when = new Date(state.manifest.generated).toLocaleString();
-    $("catalogInfo").textContent = `Сборка ${state.manifest.commit.slice(0, 7)} от ${when}`;
+    $("catalogInfo").textContent = L(`Сборка ${state.manifest.commit.slice(0, 7)} от ${when}`, `Build ${state.manifest.commit.slice(0, 7)} from ${when}`);
     renderProject();
   } catch (e) {
-    $("catalogInfo").textContent = "Каталог недоступен. Можно прошить .hex из файла.";
+    $("catalogInfo").textContent = L("Каталог недоступен. Можно прошить .hex из файла.", "Catalog unavailable. You can flash a .hex from a file.");
   }
   fillBoards($("fileBoard"), Object.keys(state.boards).filter((id) => PROTOCOLS[state.boards[id].method]));
   updateButtons();
@@ -519,10 +550,12 @@ async function loadCatalog() {
 
 function showUsbStatus() {
   $("usbPill").className = "pill " + (hasUsb ? "ok" : "off");
-  $("usbPill").textContent = hasUsb ? "доступен" : "недоступен";
+  $("usbPill").textContent = hasUsb ? L("доступен", "available") : L("недоступен", "unavailable");
   $("usbInfo").textContent = hasUsb
-    ? "Подключите плату кабелем USB-C и нажмите «Прошить». Поддерживаются Leonardo, Micro и другие платы на ATmega32U4."
-    : "Этот браузер не умеет работать с USB (например, Safari на iPad). Здесь можно смотреть и скачивать прошивки, а прошивать — в Chrome на Android.";
+    ? L("Подключите плату кабелем USB-C и нажмите «Прошить». Поддерживаются Leonardo, Micro, Pro Micro и другие платы на ATmega32U4.",
+        "Connect the board with a USB-C cable and tap “Flash”. Leonardo, Micro, Pro Micro and other ATmega32U4 boards are supported.")
+    : L("Этот браузер не умеет работать с USB (например, Safari на iPad). Здесь можно смотреть и скачивать прошивки, а прошивать — в Chrome на Android.",
+        "This browser cannot access USB (e.g. Safari on iPad). You can browse and download firmware here; flash it from Chrome on Android.");
 }
 
 $("project").onchange = () => { store("project", $("project").value); renderProject(); };
@@ -532,8 +565,8 @@ $("flashCatalogBtn").onclick = () => run(async () => {
   const { project, build, boardId } = selectedBuild();
   const dev = await pickDevice();  // сначала USB — пока действует нажатие кнопки
   const r = await fetch(fileUrl(build), { cache: "no-store" });
-  if (!r.ok) throw new Error(`Не удалось скачать прошивку: HTTP ${r.status}`);
-  await flashHexText(await r.text(), boardId, project.name, dev);
+  if (!r.ok) throw new Error(L(`Не удалось скачать прошивку: HTTP ${r.status}`, `Could not download firmware: HTTP ${r.status}`));
+  await flashHexText(await r.text(), boardId, pname(project), dev);
 });
 
 $("downloadBtn").onclick = () => run(async () => {
@@ -546,12 +579,12 @@ $("downloadBtn").onclick = () => run(async () => {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  log(`Скачано: ${a.download}`, "ok");
+  log(L(`Скачано: ${a.download}`, `Downloaded: ${a.download}`), "ok");
 });
 
 $("flashFileBtn").onclick = () => run(async () => {
   const f = $("file").files[0];
-  if (!f) throw new Error("Выберите .hex-файл");
+  if (!f) throw new Error(L("Выберите .hex-файл", "Choose a .hex file"));
   store("board", $("fileBoard").value);
   const dev = await pickDevice();
   await flashHexText(await f.text(), $("fileBoard").value, f.name, dev);
@@ -559,18 +592,18 @@ $("flashFileBtn").onclick = () => run(async () => {
 
 $("usbTestBtn").onclick = () => run(async () => {
   const known = await navigator.usb.getDevices();
-  log(`Уже разрешены: ${known.length ? known.map(devName).join(", ") : "нет"}`);
-  log("Открываю список USB-устройств Chrome…");
-  const d = await chooseUsb("Устройство не выбрано.");
-  log("Выбрано: " + devName(d), "ok");
+  log(`${L("Уже разрешены", "Already permitted")}: ${known.length ? known.map(devName).join(", ") : L("нет", "none")}`);
+  log(L("Открываю список USB-устройств Chrome…", "Opening Chrome USB device list…"));
+  const d = await chooseUsb(L("Устройство не выбрано.", "No device selected."));
+  log(L("Выбрано: ", "Selected: ") + devName(d), "ok");
   try {
     await d.open();
     if (!d.configuration) await d.selectConfiguration(1);
-    const ifs = d.configuration.interfaces.map((i) => `#${i.interfaceNumber} класс ${i.alternates[0].interfaceClass}`);
-    log("Интерфейсы: " + ifs.join(", "), "ok");
+    const ifs = d.configuration.interfaces.map((i) => `#${i.interfaceNumber} ${L("класс", "class")} ${i.alternates[0].interfaceClass}`);
+    log(L("Интерфейсы: ", "Interfaces: ") + ifs.join(", "), "ok");
     await d.close();
   } catch (e) {
-    log(`Открыть не удалось: ${e.name}: ${e.message}`, "err");
+    log(L("Открыть не удалось: ", "Could not open: ") + `${e.name}: ${e.message}`, "err");
   }
 });
 
@@ -588,7 +621,7 @@ function showCc(ch, cc, val) {
     row = document.createElement("div");
     row.className = "cc";
     row.innerHTML = `<span></span><div class="bar"><i></i></div><b></b>`;
-    row.firstChild.textContent = `CC${cc} к${ch}`;
+    row.firstChild.textContent = `CC${cc} ${L("к", "ch")}${ch}`;
     ccRows.set(key, row);
     const rows = [...ccRows.entries()].sort((a, b) => {
       const [ac, an] = a[0].split(":").map(Number), [bc, bn] = b[0].split(":").map(Number);
@@ -610,14 +643,14 @@ function onMidi(e) {
   const [st, d1, d2] = e.data;
   const type = st & 0xf0, ch = (st & 0x0f) + 1;
   if (type === 0xb0) showCc(ch, d1, d2);
-  else if (type === 0x90 && d2 > 0) midiLog(`Нота ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} вкл, сила ${d2}, к${ch}`);
-  else if (type === 0x80 || type === 0x90) midiLog(`Нота ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} выкл, к${ch}`);
+  else if (type === 0x90 && d2 > 0) midiLog(L(`Нота ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} вкл, сила ${d2}, к${ch}`, `Note ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} on, velocity ${d2}, ch${ch}`));
+  else if (type === 0x80 || type === 0x90) midiLog(L(`Нота ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} выкл, к${ch}`, `Note ${NOTE_NAMES[d1 % 12]}${Math.floor(d1 / 12) - 1} off, ch${ch}`));
   else if (st < 0xf8) midiLog([...e.data].map((b) => b.toString(16).padStart(2, "0")).join(" "));
 }
 
 $("midiBtn").onclick = async () => {
   if (!navigator.requestMIDIAccess) {
-    $("midiInfo").textContent = "Этот браузер не поддерживает Web MIDI. Откройте страницу в Chrome на Android.";
+    $("midiInfo").textContent = L("Этот браузер не поддерживает Web MIDI. Откройте страницу в Chrome на Android.", "This browser does not support Web MIDI. Open the page in Chrome on Android.");
     return;
   }
   try {
@@ -626,15 +659,15 @@ $("midiBtn").onclick = async () => {
       const names = [];
       access.inputs.forEach((inp) => { inp.onmidimessage = onMidi; names.push(inp.name); });
       $("midiInfo").textContent = names.length
-        ? "Слушаю: " + names.join(", ") + ". Покрутите потенциометр."
-        : "MIDI-устройств не найдено. Подключите плату (после прошивки переподключите кабель).";
+        ? L("Слушаю: ", "Listening: ") + names.join(", ") + L(". Покрутите ручку.", ". Turn a knob.")
+        : L("MIDI-устройств не найдено. Подключите плату (после прошивки переподключите кабель).", "No MIDI devices found. Connect the board (after flashing, replug the cable).");
     };
     access.onstatechange = attach;
     attach();
-    $("midiBtn").textContent = "Монитор включён";
+    $("midiBtn").textContent = L("Монитор включён", "Monitor is on");
     $("midiBtn").disabled = true;
   } catch (e) {
-    $("midiInfo").textContent = "Нет доступа к MIDI: " + e.message;
+    $("midiInfo").textContent = L("Нет доступа к MIDI: ", "No MIDI access: ") + e.message;
   }
 };
 

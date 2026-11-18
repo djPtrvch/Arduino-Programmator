@@ -1,6 +1,8 @@
 {
   "name": "MIDI-тест: 2 потенциометра",
+  "name_en": "MIDI test: 2 potentiometers",
   "description": "USB-MIDI контроллер для проверки: A0 → CC 20, A1 → CC 21, канал 1. У потенциометра крайние ножки на VCC и GND, средняя — на A0/A1. Мультиплексор не нужен.",
+  "description_en": "USB-MIDI test controller: A0 → CC 20, A1 → CC 21, channel 1. Potentiometer outer legs to VCC and GND, middle leg to A0/A1. No multiplexer needed.",
   "boards": [
     "promicro",
     "leonardo",

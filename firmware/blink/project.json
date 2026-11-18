@@ -1,6 +1,8 @@
 {
   "name": "Blink (проверка)",
-  "description": "Мигает встроенным светодиодом. Удобно проверить, что прошивка заливается.",
+  "name_en": "Blink (test)",
+  "description": "Мигает встроенным светодиодом (на Pro Micro — светодиодом RX). Удобно проверить, что прошивка заливается.",
+  "description_en": "Blinks the built-in LED (RX LED on Pro Micro). Handy to check that flashing works.",
   "boards": [
     "promicro",
     "leonardo",

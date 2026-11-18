@@ -1,6 +1,6 @@
 {
   "promicro": {
-    "name": "Pro Micro (ATmega32U4, 5V/16 МГц)",
+    "name": "Pro Micro (ATmega32U4, 5V/16 MHz)",
     "fqbn": "arduino:avr:leonardo",
     "core": "arduino:avr",
     "method": "avr109",

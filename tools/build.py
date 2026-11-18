@@ -87,7 +87,9 @@ def main():
     }
 
     for p in projects:
-        entry = {"id": p["id"], "name": p["name"], "description": p.get("description", ""), "builds": {}}
+        entry = {"id": p["id"], "name": p["name"], "description": p.get("description", ""),
+                 "name_en": p.get("name_en", p["name"]), "description_en": p.get("description_en", p.get("description", "")),
+                 "builds": {}}
         for b in p["boards"]:
             board = boards[b]
             try:

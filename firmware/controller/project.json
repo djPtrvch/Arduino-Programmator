@@ -1,6 +1,8 @@
 {
   "name": "Контроллер (клавиатура)",
+  "name_en": "Controller (keyboard)",
   "description": "8 кнопок на пинах 2–9 (на GND) превращаются в нажатия клавиш. Leonardo видна на iPad как USB-клавиатура.",
+  "description_en": "8 buttons on pins 2–9 (to GND) become key presses. The board shows up as a USB keyboard.",
   "boards": [
     "promicro",
     "leonardo",

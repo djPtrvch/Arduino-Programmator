@@ -8,8 +8,9 @@
 1. Создай `firmware/<id>/<id>.ino` (имя `.ino` = имя папки, латиница, без пробелов).
 2. Создай `firmware/<id>/project.json`:
    ```json
-   { "name": "Название", "description": "Что делает и как подключать",
-     "boards": ["leonardo"], "libraries": ["Keyboard"] }
+   { "name": "Название", "name_en": "Name",
+     "description": "Что делает и как подключать", "description_en": "What it does and how to wire it",
+     "boards": ["promicro"], "libraries": ["Keyboard"] }
    ```
    `boards` — ключи из `boards.json`; `libraries` — имена из Arduino Library Manager (можно `"Имя@версия"`).
 3. Для 32U4 (Leonardo/Micro) контроллер = HID: библиотеки `Keyboard`, `Mouse`. iPad понимает клавиатуру/мышь/геймпад без драйверов.
@@ -21,6 +22,9 @@
 - `method`: протокол прошивки из `PROTOCOLS` в `web/index.html` (сейчас `avr109`) или `download` — только скачивание;
 - для `avr109`: `signature` (3 байта hex), `pageSize` (байт), `flashSize` — размер области программы без загрузчика (32U4: 28672).
 - Новый протокол (STK500v1 для Uno, STK500v2 для Mega, esptool для ESP32) = новый объект в `PROTOCOLS` с методами `probe(port)` и `flash(port, pages, board)`. Для плат с CH340/CP2102 нужен свой драйвер поверх WebUSB (они не CDC-ACM).
+
+## Языки (RU / EN)
+Обе страницы двуязычные, выбор хранится в `localStorage.lang`. Любой новый текст интерфейса: в HTML — атрибут `data-en="English"` (русский текст внутри элемента), в JS — `L("Русский", "English")`. У проектов — `name_en` / `description_en`.
 
 ## Веб-программатор
 - `web/index.html` — один файл без внешних зависимостей. Маркер `/*@BOARDS@*/null` не трогать.

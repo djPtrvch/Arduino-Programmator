@@ -64,96 +64,98 @@ h3:first-of-type { margin-top: 0; }
 .bar button { flex: 1; }
 .dirty { font-size: 13px; color: var(--muted); flex: 0 0 auto; }
 .hidden { display: none !important; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+button.lang { padding: 6px 12px; font-size: 14px; }
 </style>
 </head>
 <body>
 <main>
-  <div class="top"><a href="../">← Программатор</a></div>
-  <h1>Настройка контроллера</h1>
-  <p class="sub">MIDI-контроллер на 16 энкодерах: что отправляет поворот и нажатие каждого энкодера. Настройки сохраняются в самом контроллере.</p>
+  <div class="top"><a href="../" data-en="← Programmator">← Программатор</a></div>
+  <div class="head"><h1 data-en="Controller settings">Настройка контроллера</h1><button class="secondary lang" id="langBtn">EN</button></div>
+  <p class="sub" data-en="16-encoder MIDI controller: what each encoder sends when turned and pressed. Settings are stored in the controller itself.">MIDI-контроллер на 16 энкодерах: что отправляет поворот и нажатие каждого энкодера. Настройки сохраняются в самом контроллере.</p>
 
   <section class="card">
-    <h2>Контроллер <span id="pill" class="pill off">не подключён</span></h2>
+    <h2><span data-en="Controller">Контроллер</span> <span id="pill" class="pill off">не подключён</span></h2>
     <div class="desc" id="status">Подключите контроллер по USB и нажмите «Подключить». Работает в Chrome на Android.</div>
     <div class="row">
-      <button id="connectBtn">Подключить</button>
-      <button class="secondary" id="readBtn" disabled>Прочитать из контроллера</button>
+      <button id="connectBtn" data-en="Connect">Подключить</button>
+      <button class="secondary" id="readBtn" disabled data-en="Read from controller">Прочитать из контроллера</button>
     </div>
     <div id="log"></div>
   </section>
 
   <section class="card">
-    <h2>Энкодеры</h2>
+    <h2 data-en="Encoders">Энкодеры</h2>
     <div class="grid" id="grid"></div>
-    <div class="desc">Нажмите на энкодер, чтобы настроить его. Покрутите энкодер на контроллере — он подсветится здесь.</div>
+    <div class="desc" data-en="Tap an encoder to configure it. Turn an encoder on the controller and it lights up here.">Нажмите на энкодер, чтобы настроить его. Покрутите энкодер на контроллере — он подсветится здесь.</div>
   </section>
 
   <section class="card">
     <h2 id="editTitle">Энкодер 1</h2>
-    <h3>Поворот</h3>
+    <h3 data-en="Turn">Поворот</h3>
     <div class="fields">
-      <div><label for="encMode">Режим</label>
+      <div><label for="encMode" data-en="Mode">Режим</label>
         <select id="encMode">
           <option value="0">0–127</option>
-          <option value="1">Относ. 64±</option>
-          <option value="2">Относ. 1/127</option>
+          <option value="1" data-en="Rel. 64±">Относ. 64±</option>
+          <option value="2" data-en="Rel. 1/127">Относ. 1/127</option>
         </select></div>
-      <div><label for="encCh">MIDI-канал</label><select id="encCh"></select></div>
-      <div><label for="encCc">Номер CC</label><input type="number" id="encCc" min="0" max="127" inputmode="numeric"></div>
-      <div><label class="check"><input type="checkbox" id="encAccel"> Ускорение</label></div>
+      <div><label for="encCh" data-en="MIDI channel">MIDI-канал</label><select id="encCh"></select></div>
+      <div><label for="encCc" data-en="CC number">Номер CC</label><input type="number" id="encCc" min="0" max="127" inputmode="numeric"></div>
+      <div><label class="check"><input type="checkbox" id="encAccel"> <span data-en="Acceleration">Ускорение</span></label></div>
     </div>
-    <div class="desc">0–127 — значение как у ручки без упоров. «Относ.» — шаги ±1 для программ, которые понимают относительные энкодеры (64± — Binary Offset, 1/127 — Two's Complement).</div>
-    <h3>Нажатие</h3>
+    <div class="desc" data-en="0–127 — a value like a knob without end stops. “Rel.” — ±1 steps for software that understands relative encoders (64± — Binary Offset, 1/127 — Two's Complement).">0–127 — значение как у ручки без упоров. «Относ.» — шаги ±1 для программ, которые понимают относительные энкодеры (64± — Binary Offset, 1/127 — Two's Complement).</div>
+    <h3 data-en="Press">Нажатие</h3>
     <div class="fields">
-      <div><label for="btnType">Отправлять</label>
+      <div><label for="btnType" data-en="Send">Отправлять</label>
         <select id="btnType">
           <option value="0">CC (127 / 0)</option>
-          <option value="1">Ноту</option>
-          <option value="2">Ничего</option>
+          <option value="1" data-en="Note">Ноту</option>
+          <option value="2" data-en="Nothing">Ничего</option>
         </select></div>
-      <div><label for="btnMode">Режим кнопки</label>
+      <div><label for="btnMode" data-en="Button mode">Режим кнопки</label>
         <select id="btnMode">
-          <option value="0">Моментальный</option>
-          <option value="1">Переключатель</option>
+          <option value="0" data-en="Momentary">Моментальный</option>
+          <option value="1" data-en="Toggle">Переключатель</option>
         </select></div>
-      <div><label for="btnCh">MIDI-канал</label><select id="btnCh"></select></div>
+      <div><label for="btnCh" data-en="MIDI channel">MIDI-канал</label><select id="btnCh"></select></div>
       <div><label for="btnNum" id="btnNumLabel">Номер CC</label><input type="number" id="btnNum" min="0" max="127" inputmode="numeric"></div>
     </div>
-    <div class="desc">Моментальный — «вкл» при нажатии, «выкл» при отпускании. Переключатель — каждое нажатие меняет вкл/выкл.</div>
+    <div class="desc" data-en="Momentary — “on” when pressed, “off” when released. Toggle — each press switches on/off.">Моментальный — «вкл» при нажатии, «выкл» при отпускании. Переключатель — каждое нажатие меняет вкл/выкл.</div>
     <div class="row">
-      <button class="secondary" id="copyAllBtn">Применить ко всем (номера по порядку)</button>
+      <button class="secondary" id="copyAllBtn" data-en="Apply to all (sequential numbers)">Применить ко всем (номера по порядку)</button>
     </div>
   </section>
 
   <section class="card">
-    <h2>Общие настройки</h2>
-    <label for="detent">Тип энкодеров</label>
+    <h2 data-en="General">Общие настройки</h2>
+    <label for="detent" data-en="Encoder type">Тип энкодеров</label>
     <select id="detent">
-      <option value="4">EC11, 20 щелчков на оборот</option>
-      <option value="2">EC11, 30 щелчков на оборот</option>
-      <option value="1">Без щелчков / каждый шаг</option>
+      <option value="4" data-en="EC11, 20 detents per turn">EC11, 20 щелчков на оборот</option>
+      <option value="2" data-en="EC11, 30 detents per turn">EC11, 30 щелчков на оборот</option>
+      <option value="1" data-en="No detents / every step">Без щелчков / каждый шаг</option>
     </select>
-    <div class="desc">Если энкодер считает через щелчок или по два за щелчок — смените тип.</div>
-    <label class="check"><input type="checkbox" id="reverse"> Инвертировать направление вращения</label>
+    <div class="desc" data-en="If an encoder counts every other detent or two per detent, change the type.">Если энкодер считает через щелчок или по два за щелчок — смените тип.</div>
+    <label class="check"><input type="checkbox" id="reverse"> <span data-en="Reverse rotation direction">Инвертировать направление вращения</span></label>
   </section>
 
   <section class="card">
-    <h2>Пресеты</h2>
+    <h2 data-en="Presets">Пресеты</h2>
     <div class="row">
-      <button class="secondary" id="savePresetBtn">Сохранить в файл</button>
-      <button class="secondary" id="loadPresetBtn">Загрузить из файла</button>
+      <button class="secondary" id="savePresetBtn" data-en="Save to file">Сохранить в файл</button>
+      <button class="secondary" id="loadPresetBtn" data-en="Load from file">Загрузить из файла</button>
     </div>
     <input type="file" id="presetFile" accept=".json,application/json" class="hidden">
     <div class="row">
-      <button class="secondary" id="defaultsBtn">Настройки по умолчанию</button>
+      <button class="secondary" id="defaultsBtn" data-en="Default settings">Настройки по умолчанию</button>
     </div>
   </section>
 </main>
 
 <div class="bar">
   <div class="inner">
-    <span class="dirty" id="dirty">Сохранено</span>
-    <button id="writeBtn" disabled>Записать в контроллер</button>
+    <span class="dirty" id="dirty"></span>
+    <button id="writeBtn" disabled data-en="Write to controller">Записать в контроллер</button>
   </div>
 </div>
 
@@ -164,6 +166,31 @@ const SYSEX = [0x7d, 0x4d];  // ID производителя (некоммер�
 const ENC_FIELDS = ["channel", "cc", "mode", "accel", "btnType", "btnChannel", "btnNumber", "btnMode"];
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- язык интерфейса (RU / EN), общий с программатором
+let lang = "ru";
+try { lang = localStorage.getItem("lang") || (navigator.language.startsWith("ru") ? "ru" : "en"); } catch (e) { /* без хранилища */ }
+const L = (ru, en) => (lang === "en" ? en : ru);
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = L("Настройка контроллера", "Controller settings");
+  document.querySelectorAll("[data-en]").forEach((el) => {
+    if (el.dataset.ru === undefined) el.dataset.ru = el.textContent;
+    el.textContent = lang === "en" ? el.dataset.en : el.dataset.ru;
+  });
+  $("langBtn").textContent = lang === "en" ? "RU" : "EN";
+}
+
+$("langBtn").onclick = () => {
+  lang = lang === "en" ? "ru" : "en";
+  try { localStorage.setItem("lang", lang); } catch (e) { /* без хранилища */ }
+  applyLang();
+  renderAll();
+  if (st.output) setConnected(st.output.name);
+  else setConnected(null);
+};
+applyLang();
 
 const st = {
   access: null, input: null, output: null,
@@ -231,7 +258,7 @@ function sendSysex(output, cmd, data = []) {
 
 function request(cmd, data, replyCmd, timeout = 1500, output = st.output) {
   return new Promise((resolve, reject) => {
-    const t = setTimeout(() => { st.pending.delete(replyCmd); reject(new Error("Контроллер не ответил")); }, timeout);
+    const t = setTimeout(() => { st.pending.delete(replyCmd); reject(new Error(L("Контроллер не ответил", "Controller did not respond"))); }, timeout);
     st.pending.set(replyCmd, (payload, input) => { clearTimeout(t); st.pending.delete(replyCmd); resolve({ payload, input }); });
     sendSysex(output, cmd, data);
   });
@@ -263,13 +290,13 @@ function onMessage(e) {
 
 async function connect() {
   if (!navigator.requestMIDIAccess) {
-    log("Этот браузер не поддерживает Web MIDI. Откройте страницу в Chrome на Android.", "err");
+    log(L("Этот браузер не поддерживает Web MIDI. Откройте страницу в Chrome на Android.", "This browser does not support Web MIDI. Open the page in Chrome on Android."), "err");
     return;
   }
   try {
     st.access = st.access || (await navigator.requestMIDIAccess({ sysex: true }));
   } catch (e) {
-    log("Нет доступа к MIDI: " + e.message + ". Разрешите доступ к MIDI-устройствам для этого сайта.", "err");
+    log(L("Нет доступа к MIDI: ", "No MIDI access: ") + e.message + L(". Разрешите доступ к MIDI-устройствам для этого сайта.", ". Allow MIDI device access for this site."), "err");
     return;
   }
   st.access.inputs.forEach((inp) => (inp.onmidimessage = onMessage));
@@ -277,7 +304,7 @@ async function connect() {
     if (ev.port.type === "input" && ev.port.state === "connected") ev.port.onmidimessage = onMessage;
     if (st.output && ev.port === st.output && ev.port.state === "disconnected") setConnected(null);
   };
-  log("Ищу контроллер…");
+  log(L("Ищу контроллер…", "Looking for the controller…"));
   for (const out of st.access.outputs.values()) {
     try {
       const { payload, input } = await request(0x01, [], 0x02, 600, out);
@@ -290,16 +317,16 @@ async function connect() {
     } catch (e) { /* это не наш контроллер */ }
   }
   setConnected(null);
-  log("Контроллер не найден. Он прошит прошивкой «MIDI-контроллер: 16 энкодеров»? Переподключите кабель и попробуйте ещё раз.", "err");
+  log(L("Контроллер не найден. Он прошит прошивкой «MIDI-контроллер: 16 энкодеров»? Переподключите кабель и попробуйте ещё раз.", "Controller not found. Is it flashed with “MIDI controller: 16 EC11 encoders”? Replug the cable and try again."), "err");
 }
 
 function setConnected(name) {
   if (!name) { st.output = st.input = null; }
   $("pill").className = "pill " + (name ? "ok" : "off");
-  $("pill").textContent = name ? "подключён" : "не подключён";
+  $("pill").textContent = name ? L("подключён", "connected") : L("не подключён", "not connected");
   $("status").textContent = name
-    ? `${name}, прошивка v${st.info.version}`
-    : "Подключите контроллер по USB и нажмите «Подключить». Работает в Chrome на Android.";
+    ? `${name}, ${L("прошивка", "firmware")} v${st.info.version}`
+    : L("Подключите контроллер по USB и нажмите «Подключить». Работает в Chrome на Android.", "Connect the controller over USB and tap “Connect”. Works in Chrome on Android.");
   $("readBtn").disabled = !name;
   updateDirty();
 }
@@ -312,7 +339,7 @@ async function readAll() {
     v.payload.forEach((x, i) => (st.values[i] = x));
     st.dirty = false;
     renderAll();
-    log("Настройки прочитаны из контроллера", "ok");
+    log(L("Настройки прочитаны из контроллера", "Settings read from the controller"), "ok");
   } catch (e) {
     log(e.message, "err");
   }
@@ -321,10 +348,10 @@ async function readAll() {
 async function writeAll() {
   try {
     const { payload } = await request(0x05, cfgToBytes(st.cfg), 0x06, 3000);
-    if (payload[0] !== 0) throw new Error("Контроллер отклонил настройки");
+    if (payload[0] !== 0) throw new Error(L("Контроллер отклонил настройки", "Controller rejected the settings"));
     st.dirty = false;
     updateDirty();
-    log("Записано в контроллер", "ok");
+    log(L("Записано в контроллер", "Written to the controller"), "ok");
   } catch (e) {
     log(e.message, "err");
   }
@@ -373,7 +400,7 @@ function setPressed(i, on) { tile(i).classList.toggle("pressed", on); }
 
 function renderTile(i) {
   const e = st.cfg.enc[i];
-  tile(i).querySelector(".lbl").textContent = `CC${e.cc} · к${e.channel + 1}`;
+  tile(i).querySelector(".lbl").textContent = `CC${e.cc} · ${L("к", "ch")}${e.channel + 1}`;
   setValue(i, e.mode === 0 ? st.values[i] : 127);
 }
 
@@ -388,7 +415,7 @@ function fillChannels(sel) {
 
 function renderEditor() {
   const e = st.cfg.enc[st.sel];
-  $("editTitle").textContent = `Энкодер ${st.sel + 1}`;
+  $("editTitle").textContent = `${L("Энкодер", "Encoder")} ${st.sel + 1}`;
   $("encMode").value = e.mode;
   $("encCh").value = e.channel;
   $("encCc").value = e.cc;
@@ -397,7 +424,7 @@ function renderEditor() {
   $("btnMode").value = e.btnMode;
   $("btnCh").value = e.btnChannel;
   $("btnNum").value = e.btnNumber;
-  $("btnNumLabel").textContent = e.btnType === 1 ? "Нота (60 = C4)" : "Номер CC";
+  $("btnNumLabel").textContent = e.btnType === 1 ? L("Нота (60 = C4)", "Note (60 = C4)") : L("Номер CC", "CC number");
   const off = e.btnType === 2;
   ["btnMode", "btnCh", "btnNum"].forEach((id) => ($(id).disabled = off));
   [...$("grid").children].forEach((el, i) => el.classList.toggle("sel", i === st.sel));
@@ -412,7 +439,7 @@ function renderAll() {
 }
 
 function updateDirty() {
-  $("dirty").textContent = st.dirty ? "Есть изменения" : "Сохранено";
+  $("dirty").textContent = st.dirty ? L("Есть изменения", "Unsaved changes") : L("Сохранено", "Saved");
   $("writeBtn").disabled = !st.output || !st.dirty;
 }
 
@@ -455,7 +482,7 @@ $("copyAllBtn").onclick = () => {
   }));
   st.dirty = true;
   renderAll();
-  log("Настройки энкодера " + (st.sel + 1) + " применены ко всем, номера по порядку");
+  log(L(`Настройки энкодера ${st.sel + 1} применены ко всем, номера по порядку`, `Encoder ${st.sel + 1} settings applied to all, sequential numbers`));
 };
 
 $("connectBtn").onclick = connect;
@@ -466,7 +493,7 @@ $("defaultsBtn").onclick = () => {
   st.cfg = defaults();
   st.dirty = true;
   renderAll();
-  log("Настройки по умолчанию. Нажмите «Записать в контроллер», чтобы применить.");
+  log(L("Настройки по умолчанию. Нажмите «Записать в контроллер», чтобы применить.", "Default settings. Tap “Write to controller” to apply."));
 };
 
 $("savePresetBtn").onclick = () => {
@@ -485,18 +512,19 @@ $("presetFile").onchange = async () => {
   if (!f) return;
   try {
     const data = JSON.parse(await f.text());
-    if (data.format !== "encoders16") throw new Error("Это не пресет этого контроллера");
+    if (data.format !== "encoders16") throw new Error(L("Это не пресет этого контроллера", "This is not a preset for this controller"));
     st.cfg = sanitize(data);
     st.dirty = true;
     renderAll();
-    log(`Пресет «${f.name}» загружен. Нажмите «Записать в контроллер».`, "ok");
+    log(L(`Пресет «${f.name}» загружен. Нажмите «Записать в контроллер».`, `Preset “${f.name}” loaded. Tap “Write to controller”.`), "ok");
   } catch (e) {
-    log("Не удалось загрузить пресет: " + e.message, "err");
+    log(L("Не удалось загрузить пресет: ", "Could not load preset: ") + e.message, "err");
   }
   $("presetFile").value = "";
 };
 
 renderAll();
+setConnected(null);
 </script>
 </body>
 </html>
