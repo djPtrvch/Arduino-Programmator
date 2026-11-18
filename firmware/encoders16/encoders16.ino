@@ -316,11 +316,17 @@ void sysexByte(uint8_t b) {
   }
 }
 
-// Программа может прислать значение CC — контроллер его подхватит (абсолютный режим).
-void onIncomingCC(uint8_t ch, uint8_t cc, uint8_t value) {
+// Обратная связь от программы:
+//  - CC на номер/канал энкодера (абсолютный режим) — новое текущее значение, поворот продолжится с него;
+//  - CC (≥64 — вкл) или нота (Note On > 0 — вкл) на кнопку-переключатель — новое состояние переключателя.
+void onFeedback(uint8_t type, uint8_t ch, uint8_t num, uint8_t value) {
   for (uint8_t i = 0; i < NUM_ENC; i++) {
     const EncConfig &e = cfg.enc[i];
-    if (e.mode == ENC_ABSOLUTE && e.channel == ch && e.cc == cc) st[i].value = value;
+    if (type == 0xB0 && e.mode == ENC_ABSOLUTE && e.channel == ch && e.cc == num) st[i].value = value;
+    if (e.btnMode != BTN_TOGGLE || e.btnChannel != ch || e.btnNumber != num) continue;
+    if (type == 0xB0 && e.btnType == BTN_CC) st[i].toggled = value >= 64;
+    if (type == 0x90 && e.btnType == BTN_NOTE) st[i].toggled = value > 0;
+    if (type == 0x80 && e.btnType == BTN_NOTE) st[i].toggled = false;
   }
 }
 
@@ -338,8 +344,8 @@ void pollMidi() {
     } else if (cin == 0x06) {
       sysexByte(p.byte1);
       sysexByte(p.byte2);
-    } else if (cin == 0x0B) {
-      onIncomingCC(p.byte1 & 0x0F, p.byte2, p.byte3);
+    } else if (cin == 0x0B || cin == 0x09 || cin == 0x08) {
+      onFeedback(p.byte1 & 0xF0, p.byte1 & 0x0F, p.byte2, p.byte3);
     }
   }
 }
